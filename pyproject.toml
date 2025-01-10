@@ -1,6 +1,6 @@
 [project]
 name = "kura"
-version = "0.2.0"
+version = "0.3.0"
 description = "Kura is a tool for analysing and visualising chat data"
 readme = "README.md"
 authors = [

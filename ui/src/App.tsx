@@ -4,7 +4,6 @@ import { UploadButton } from "./components/upload-button";
 import type { Analytics } from "./types/analytics";
 import { AnalyticsCharts } from "./components/analytics-charts";
 import ClusterVisualisation from "./components/cluster";
-import UmapVisualisation from "./components/umap-visualisation";
 
 function App() {
   const [data, setData] = useState<Analytics | null>(null);
@@ -26,7 +25,6 @@ function App() {
         {data && <AnalyticsCharts data={data} />}
       </div>
       {data && <ClusterVisualisation clusters={data.clusters} />}
-      {/* {data && <UmapVisualisation clusters={data.clusters} />} */}
     </>
   );
 }
