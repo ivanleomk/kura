@@ -32,6 +32,9 @@ docs = [
     "mkdocstrings>=0.27.0",
     "mkdocstrings-python>=1.13.0",
 ]
+dev = [
+    "pyright>=1.1.392.post0",
+]
 
 
 [project.scripts]
