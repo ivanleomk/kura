@@ -39,3 +39,19 @@ dev = [
 
 [project.scripts]
 kura = "kura.cli.cli:app"
+
+[tool.pyright]
+include = ["instructor"]
+exclude = [
+    "**/node_modules",
+    "**/__pycache__",
+    "src/experimental",
+    "src/typestubs",
+    "**/tests/**",
+]
+
+reportMissingImports = "error"
+reportMissingTypeStubs = false
+
+pythonVersion = "3.9"
+pythonPlatform = "Linux"
