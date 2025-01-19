@@ -25,7 +25,6 @@ T = TypeVar("T", bound=BaseModel)
 class Kura:
     def __init__(
         self,
-        conversations: list[Conversation] = [],
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         summarisation_model: BaseSummaryModel = SummaryModel(),
         cluster_model: BaseClusterModel = ClusterModel(),
@@ -43,7 +42,6 @@ class Kura:
         self.embedding_model = embedding_model
         self.embedding_model = embedding_model
         self.summarisation_model = summarisation_model
-        self.conversations = conversations
         self.max_clusters = max_clusters
         self.cluster_model = cluster_model
         self.meta_cluster_model = meta_cluster_model
@@ -69,7 +67,7 @@ class Kura:
             os.makedirs(self.checkpoint_dir)
 
     def load_checkpoint(
-        self, checkpoint_path: str, response_model: T
+        self, checkpoint_path: str, response_model: type[T]
     ) -> Union[list[T], None]:
         if not self.disable_checkpoints:
             if os.path.exists(checkpoint_path):

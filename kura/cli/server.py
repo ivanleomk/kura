@@ -71,9 +71,8 @@ async def analyse_conversations(conversation_data: ConversationData):
             checkpoint_dir=str(
                 Path(os.path.abspath(os.environ["KURA_CHECKPOINT_DIR"]))
             ),
-            conversations=conversations,
         )
-        await kura.cluster_conversations()
+        clusters = await kura.cluster_conversations(conversations)
 
     with open(clusters_file) as f:
         clusters_data = []
