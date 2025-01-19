@@ -25,7 +25,9 @@ class Conversation(BaseModel):
                     messages=[
                         Message(
                             created_at=message["created_at"],
-                            role=message["sender"],
+                            role="user"
+                            if message["sender"] == "human"
+                            else "assistant",
                             content="\n".join(
                                 [
                                     item["text"]

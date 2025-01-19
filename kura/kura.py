@@ -11,8 +11,15 @@ from kura.base_classes import (
     BaseMetaClusterModel,
     BaseDimensionalityReduction,
 )
-import json
+from typing import Union
 import os
+from typing import TypeVar
+from pydantic import BaseModel
+
+from kura.types.dimensionality import ProjectedCluster
+from kura.types.summarisation import ConversationSummary
+
+T = TypeVar("T", bound=BaseModel)
 
 
 class Kura:
@@ -26,14 +33,13 @@ class Kura:
         dimensionality_reduction: BaseDimensionalityReduction = HDBUMAP(),
         max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
-        summary_checkpoint_name: str = "summaries.json",
-        cluster_checkpoint_name: str = "clusters.json",
-        meta_cluster_checkpoint_name: str = "meta_clusters.json",
-        dimensionality_checkpoint_name: str = "dimensionality.json",
+        summary_checkpoint_name: str = "summaries.jsonl",
+        cluster_checkpoint_name: str = "clusters.jsonl",
+        meta_cluster_checkpoint_name: str = "meta_clusters.jsonl",
+        dimensionality_checkpoint_name: str = "dimensionality.jsonl",
         disable_checkpoints: bool = False,
     ):
-        # TODO: Manage Checkpoints within Kura class itself so we can directly disable checkpointing easily
-
+        # Define Models that we're using
         self.embedding_model = embedding_model
         self.embedding_model = embedding_model
         self.summarisation_model = summarisation_model
@@ -42,21 +48,50 @@ class Kura:
         self.cluster_model = cluster_model
         self.meta_cluster_model = meta_cluster_model
         self.dimensionality_reduction = dimensionality_reduction
-        self.checkpoint_dir = checkpoint_dir
-        self.cluster_checkpoint_name = cluster_checkpoint_name
-        self.meta_cluster_checkpoint_name = meta_cluster_checkpoint_name
+
+        # Define Checkpoints
+        self.checkpoint_dir = os.path.join(checkpoint_dir)
+        self.cluster_checkpoint_name = os.path.join(
+            self.checkpoint_dir, cluster_checkpoint_name
+        )
+        self.meta_cluster_checkpoint_name = os.path.join(
+            self.checkpoint_dir, meta_cluster_checkpoint_name
+        )
+        self.dimensionality_checkpoint_name = os.path.join(
+            self.checkpoint_dir, dimensionality_checkpoint_name
+        )
+        self.summary_checkpoint_name = os.path.join(
+            self.checkpoint_dir, summary_checkpoint_name
+        )
+        self.disable_checkpoints = disable_checkpoints
+
+        if not os.path.exists(self.checkpoint_dir) and not self.disable_checkpoints:
+            os.makedirs(self.checkpoint_dir)
+
+    def load_checkpoint(
+        self, checkpoint_path: str, response_model: T
+    ) -> Union[list[T], None]:
+        if not self.disable_checkpoints:
+            if os.path.exists(checkpoint_path):
+                print(
+                    f"Loading checkpoint from {checkpoint_path} for {response_model.__name__}"
+                )
+                with open(checkpoint_path, "r") as f:
+                    return [response_model.model_validate_json(line) for line in f]
+        return None
+
+    def save_checkpoint(self, checkpoint_path: str, data: list[T]) -> None:
+        if not self.disable_checkpoints:
+            with open(checkpoint_path, "w") as f:
+                for item in data:
+                    f.write(item.model_dump_json() + "\n")
 
     async def reduce_clusters(self, clusters: list[Cluster]) -> list[Cluster]:
-        if os.path.exists(
-            os.path.join(self.checkpoint_dir, self.cluster_checkpoint_name)
-        ):
-            print(
-                f"Loading Meta Cluster Checkpoint from {self.checkpoint_dir}/{self.cluster_checkpoint_name}"
-            )
-            with open(
-                os.path.join(self.checkpoint_dir, self.cluster_checkpoint_name), "r"
-            ) as f:
-                return [Cluster(**json.loads(line)) for line in f]
+        checkpoint_items = self.load_checkpoint(
+            self.meta_cluster_checkpoint_name, Cluster
+        )
+        if checkpoint_items:
+            return checkpoint_items
 
         root_clusters = clusters
 
@@ -80,23 +115,57 @@ class Kura:
 
             print(f"Reduced to {len(root_clusters)} clusters")
 
-        with open(
-            os.path.join(self.checkpoint_dir, self.cluster_checkpoint_name), "w"
-        ) as f:
-            print(f"Saving {len(clusters)} clusters to checkpoint")
-            for c in clusters:
-                f.write(c.model_dump_json() + "\n")
-
+        self.save_checkpoint(self.meta_cluster_checkpoint_name, clusters)
         return clusters
 
-    async def cluster_conversations(self):
-        summaries = await self.summarisation_model.summarise(self.conversations)
+    async def summarise_conversations(
+        self, conversations: list[Conversation]
+    ) -> list[ConversationSummary]:
+        checkpoint_items = self.load_checkpoint(
+            self.summary_checkpoint_name, ConversationSummary
+        )
+        if checkpoint_items:
+            return checkpoint_items
+
+        summaries = await self.summarisation_model.summarise(conversations)
+        self.save_checkpoint(self.summary_checkpoint_name, summaries)
+        return summaries
+
+    async def generate_base_clusters(self, summaries: list[ConversationSummary]):
+        base_cluster_checkpoint_items = self.load_checkpoint(
+            self.cluster_checkpoint_name, Cluster
+        )
+        if base_cluster_checkpoint_items:
+            return base_cluster_checkpoint_items
+
         clusters: list[Cluster] = await self.cluster_model.cluster_summaries(summaries)
-        processed_clusters = await self.reduce_clusters(clusters)
+        self.save_checkpoint(self.cluster_checkpoint_name, clusters)
+        return clusters
+
+    async def reduce_dimensionality(
+        self, clusters: list[Cluster]
+    ) -> list[ProjectedCluster]:
+        checkpoint_items = self.load_checkpoint(
+            self.dimensionality_checkpoint_name, ProjectedCluster
+        )
+        if checkpoint_items:
+            return checkpoint_items
+
         dimensionality_reduced_clusters = (
-            await self.dimensionality_reduction.reduce_dimensionality(
-                processed_clusters
-            )
+            await self.dimensionality_reduction.reduce_dimensionality(clusters)
+        )
+
+        self.save_checkpoint(
+            self.dimensionality_checkpoint_name, dimensionality_reduced_clusters
+        )
+        return dimensionality_reduced_clusters
+
+    async def cluster_conversations(self, conversations: list[Conversation]):
+        summaries = await self.summarise_conversations(conversations)
+        clusters: list[Cluster] = await self.generate_base_clusters(summaries)
+        processed_clusters: list[Cluster] = await self.reduce_clusters(clusters)
+        dimensionality_reduced_clusters = await self.reduce_dimensionality(
+            processed_clusters
         )
 
         return dimensionality_reduced_clusters
