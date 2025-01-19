@@ -41,7 +41,7 @@ dev = [
 kura = "kura.cli.cli:app"
 
 [tool.pyright]
-include = ["instructor"]
+include = ["kura"]
 exclude = [
     "**/node_modules",
     "**/__pycache__",
