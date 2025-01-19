@@ -3,7 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pathlib import Path
 from kura import Kura
-from kura.types import ProjectedCluster, Conversation, Message
+from kura.types import ProjectedCluster, Conversation
+from typing import Optional
 from kura.cli.visualisation import (
     generate_cumulative_chart_data,
     generate_messages_per_chat_data,
@@ -31,37 +32,21 @@ if not web_dir.exists():
 
 
 class ConversationData(BaseModel):
-    data: list[dict]
+    data: list[Conversation]
+    checkpoint_dir: Optional[str]
+    max_clusters: Optional[int]
+    disable_checkpoints: Optional[bool]
+    checkpoint_file: Optional[str]
 
 
 @api.post("/api/analyse")
 async def analyse_conversations(conversation_data: ConversationData):
-    conversations = [
-        Conversation(
-            chat_id=conversation["uuid"],
-            created_at=conversation["created_at"],
-            messages=[
-                Message(
-                    created_at=message["created_at"],
-                    role=message["sender"],
-                    content="\n".join(
-                        [
-                            item["text"]
-                            for item in message["content"]
-                            if item["type"] == "text"
-                        ]
-                    ),
-                )
-                for message in conversation["chat_messages"]
-            ],
+    if conversation_data.checkpoint_dir is None:
+        conversation_data.checkpoint_dir = os.path.abspath(
+            os.environ["KURA_CHECKPOINT_DIR"]
         )
-        for conversation in conversation_data.data
-    ]
 
-    clusters_file = (
-        Path(os.path.abspath(os.environ["KURA_CHECKPOINT_DIR"]))
-        / "dimensionality_checkpoints.json"
-    )
+    clusters_file = Path(conversation_data.checkpoint_dir) / "dimensionality.jsonl"
     clusters = []
 
     # Load clusters from checkpoint file if it exists
@@ -71,8 +56,14 @@ async def analyse_conversations(conversation_data: ConversationData):
             checkpoint_dir=str(
                 Path(os.path.abspath(os.environ["KURA_CHECKPOINT_DIR"]))
             ),
+            max_clusters=conversation_data.max_clusters
+            if conversation_data.max_clusters
+            else 10,
+            disable_checkpoints=conversation_data.disable_checkpoints
+            if conversation_data.disable_checkpoints
+            else False,
         )
-        clusters = await kura.cluster_conversations(conversations)
+        clusters = await kura.cluster_conversations(conversation_data.data)
 
     with open(clusters_file) as f:
         clusters_data = []
@@ -83,10 +74,10 @@ async def analyse_conversations(conversation_data: ConversationData):
         ]
 
     return {
-        "cumulative_words": generate_cumulative_chart_data(conversations),
-        "messages_per_chat": generate_messages_per_chat_data(conversations),
-        "messages_per_week": generate_messages_per_week_data(conversations),
-        "new_chats_per_week": generate_new_chats_per_week_data(conversations),
+        "cumulative_words": generate_cumulative_chart_data(conversation_data.data),
+        "messages_per_chat": generate_messages_per_chat_data(conversation_data.data),
+        "messages_per_week": generate_messages_per_week_data(conversation_data.data),
+        "new_chats_per_week": generate_new_chats_per_week_data(conversation_data.data),
         "clusters": clusters,
     }
 
