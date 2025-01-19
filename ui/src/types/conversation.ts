@@ -23,10 +23,11 @@ export const conversationTypes: { value: ConversationType; label: string }[] = [
     value: "Claude",
     label: "Claude Conversations",
   },
-  {
-    value: "OpenAI",
-    label: "OpenAI Conversations",
-  },
+  // TODO: Add OpenAI conversations
+  //   {
+  //     value: "OpenAI",
+  //     label: "OpenAI Conversations",
+  //   },
   {
     value: "Kura",
     label: "Kura Conversations",
