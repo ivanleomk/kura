@@ -24,7 +24,9 @@ class Conversation(BaseModel):
                     created_at=conversation["created_at"],
                     messages=[
                         Message(
-                            created_at=message["created_at"],
+                            created_at=datetime.fromisoformat(
+                                message["created_at"].replace("Z", "+00:00")
+                            ),
                             role="user"
                             if message["sender"] == "human"
                             else "assistant",
@@ -36,7 +38,15 @@ class Conversation(BaseModel):
                                 ]
                             ),
                         )
-                        for message in conversation["chat_messages"]
+                        for message in sorted(
+                            conversation["chat_messages"],
+                            key=lambda x: (
+                                datetime.fromisoformat(
+                                    x["created_at"].replace("Z", "+00:00")
+                                ),
+                                0 if x["sender"] == "human" else 1,
+                            ),
+                        )
                     ],
                 )
                 for conversation in json.load(f)

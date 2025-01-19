@@ -1,5 +1,5 @@
 import { Conversation } from "@/types/conversation";
-import React from "react";
+
 import {
   Dialog,
   DialogContent,
@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import { Markdown } from "./markdown";
 
 type Props = {
   chatId: string;
@@ -36,13 +37,13 @@ const ChatDialog = ({ chatId, conversation }: Props) => {
               }`}
             >
               <div
-                className={`max-w-[80%] rounded-xl p-2  ${
+                className={`max-w-[80%] rounded-xl px-4 py-2  ${
                   m.role === "user"
                     ? "bg-blue-500 text-white rounded-br-none"
                     : "bg-gray-200 text-gray-800 rounded-bl-none"
                 }`}
               >
-                <p className="whitespace-pre-line">{m.content}</p>
+                <Markdown>{m.content}</Markdown>
               </div>
               <span className="text-xs text-gray-500 mt-1">
                 {m.role === "user" ? "You" : "Assistant"}
