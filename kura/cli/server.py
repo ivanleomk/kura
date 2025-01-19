@@ -12,7 +12,7 @@ from kura.cli.visualisation import (
     generate_new_chats_per_week_data,
 )
 import json
-import os
+
 
 api = FastAPI()
 
@@ -33,45 +33,32 @@ if not web_dir.exists():
 
 class ConversationData(BaseModel):
     data: list[Conversation]
-    checkpoint_dir: Optional[str]
     max_clusters: Optional[int]
-    disable_checkpoints: Optional[bool]
-    checkpoint_file: Optional[str]
+    disable_checkpoints: bool
 
 
 @api.post("/api/analyse")
 async def analyse_conversations(conversation_data: ConversationData):
-    if conversation_data.checkpoint_dir is None:
-        conversation_data.checkpoint_dir = os.path.abspath(
-            os.environ["KURA_CHECKPOINT_DIR"]
-        )
-
-    clusters_file = Path(conversation_data.checkpoint_dir) / "dimensionality.jsonl"
-    clusters = []
-
+    print(conversation_data.disable_checkpoints)
     # Load clusters from checkpoint file if it exists
-
-    if not clusters_file.exists():
+    clusters_file = Path("./checkpoints") / "dimensionality.jsonl"
+    if not clusters_file.exists() or conversation_data.disable_checkpoints:
         kura = Kura(
-            checkpoint_dir=str(
-                Path(os.path.abspath(os.environ["KURA_CHECKPOINT_DIR"]))
-            ),
+            checkpoint_dir=str(clusters_file.parent),
             max_clusters=conversation_data.max_clusters
             if conversation_data.max_clusters
             else 10,
-            disable_checkpoints=conversation_data.disable_checkpoints
-            if conversation_data.disable_checkpoints
-            else False,
+            disable_checkpoints=conversation_data.disable_checkpoints,
         )
         clusters = await kura.cluster_conversations(conversation_data.data)
-
-    with open(clusters_file) as f:
-        clusters_data = []
-        for line in f:
-            clusters_data.append(line)
-        clusters = [
-            ProjectedCluster(**json.loads(cluster)) for cluster in clusters_data
-        ]
+    else:
+        with open(clusters_file) as f:
+            clusters_data = []
+            for line in f:
+                clusters_data.append(line)
+            clusters = [
+                ProjectedCluster(**json.loads(cluster)) for cluster in clusters_data
+            ]
 
     return {
         "cumulative_words": generate_cumulative_chart_data(conversation_data.data),

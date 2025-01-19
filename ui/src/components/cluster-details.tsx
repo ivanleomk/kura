@@ -3,12 +3,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { FolderOpen, MessageCircle } from "lucide-react";
 import { Cluster } from "@/types/analytics";
+import { Conversation } from "@/types/conversation";
+import { Dialog } from "./ui/dialog";
+import ChatDialog from "./ChatDialog";
 
 interface ClusterDetailProps {
   cluster: Cluster | null;
+  conversations: Conversation[];
 }
 
-export default function ClusterDetail({ cluster }: ClusterDetailProps) {
+export default function ClusterDetail({
+  cluster,
+  conversations,
+}: ClusterDetailProps) {
   if (!cluster) {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -61,9 +68,18 @@ export default function ClusterDetail({ cluster }: ClusterDetailProps) {
 
             <div className="space-y-3">
               <h3 className="text-base font-semibold">Chat IDs</h3>
-              <div className="text-sm text-muted-foreground bg-muted/40 rounded-lg p-4 font-mono break-all">
-                {cluster.chat_ids.slice(0, 5).join(",\n")}
-                {cluster.chat_ids.length > 5 && "..."}
+              <div className="space-y-4 max-h-[200px] overflow-y-auto p-2">
+                {cluster.chat_ids.map((chatId) => (
+                  <ChatDialog
+                    key={chatId}
+                    chatId={chatId}
+                    conversation={
+                      conversations.find(
+                        (c) => c.chat_id === chatId
+                      ) as Conversation
+                    }
+                  />
+                ))}
               </div>
             </div>
 

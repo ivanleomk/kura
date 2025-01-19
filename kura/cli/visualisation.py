@@ -11,7 +11,7 @@ def generate_cumulative_chart_data(conversations: List[Conversation]) -> dict:
     messages_data = []
     for conv in conversations:
         for msg in conv.messages:
-            if msg.role == "human":
+            if msg.role == "user":
                 messages_data.append(
                     {
                         "datetime": pd.to_datetime(

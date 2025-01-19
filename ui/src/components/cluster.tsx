@@ -4,6 +4,7 @@ import { ClusterTree } from "./cluster-tree";
 import ClusterDetail from "./cluster-details";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PointVisualisation from "./umap_visualisation";
+import { Conversation } from "@/types/conversation";
 
 const getClusterDepth = (clusters: Cluster[]) => {
   const levelMap = new Map<number, Cluster[]>();
@@ -23,7 +24,13 @@ const getClusterDepth = (clusters: Cluster[]) => {
   return levelMap;
 };
 
-const ClusterVisualisation = ({ clusters }: { clusters: Cluster[] }) => {
+const ClusterVisualisation = ({
+  clusters,
+  conversations,
+}: {
+  clusters: Cluster[];
+  conversations: Conversation[];
+}) => {
   const [selectedClusterId, setSelectedClusterId] = useState<string | null>(
     null
   );
@@ -46,7 +53,7 @@ const ClusterVisualisation = ({ clusters }: { clusters: Cluster[] }) => {
       </div>
 
       <div className="w-full px-2" style={{ maxWidth: "1400px" }}>
-        <Tabs defaultValue="tree" className="h-[600px] w-full">
+        <Tabs defaultValue="tree" className="min-h-[600px] w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="tree">Tree View</TabsTrigger>
             <TabsTrigger value="map">Map View</TabsTrigger>
@@ -54,7 +61,10 @@ const ClusterVisualisation = ({ clusters }: { clusters: Cluster[] }) => {
           <TabsContent value="tree">
             <div className="flex items-start w-full gap-4">
               <div className="w-2/5">
-                <ClusterDetail cluster={selectedCluster || null} />
+                <ClusterDetail
+                  conversations={conversations}
+                  cluster={selectedCluster || null}
+                />
               </div>
               <div className="w-3/5">
                 <ClusterTree

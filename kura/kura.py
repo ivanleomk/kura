@@ -11,6 +11,7 @@ from kura.base_classes import (
     BaseMetaClusterModel,
     BaseDimensionalityReduction,
 )
+from pathlib import Path
 from typing import Union
 import os
 from typing import TypeVar
@@ -65,6 +66,9 @@ class Kura:
 
         if not os.path.exists(self.checkpoint_dir) and not self.disable_checkpoints:
             os.makedirs(self.checkpoint_dir)
+
+        if not self.disable_checkpoints:
+            print(f"Checkpoint directory: {Path(self.checkpoint_dir)}")
 
     def load_checkpoint(
         self, checkpoint_path: str, response_model: type[T]
