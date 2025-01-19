@@ -12,8 +12,6 @@ class SummaryModel(BaseSummaryModel):
     def __init__(
         self,
         max_concurrent_requests: int = 50,
-        checkpoint_dir: str = "checkpoints",
-        checkpoint_file: str = "summarisation_checkpoint.json",
     ):
         self.sem = Semaphore(max_concurrent_requests)
         self.client = instructor.from_gemini(
@@ -22,35 +20,10 @@ class SummaryModel(BaseSummaryModel):
             ),
             use_async=True,
         )
-        self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_file = checkpoint_file
-
-        if not os.path.exists(self.checkpoint_dir):
-            print(f"Creating checkpoint directory {self.checkpoint_dir}")
-            os.makedirs(self.checkpoint_dir)
-
-    def load_checkpoint(self):
-        print(
-            f"Loading Summary Checkpoint from {os.path.join(self.checkpoint_dir, self.checkpoint_file)}"
-        )
-        with open(os.path.join(self.checkpoint_dir, self.checkpoint_file), "r") as f:
-            return [ConversationSummary.model_validate_json(line) for line in f]
-
-    def save_checkpoint(self, summaries: list[ConversationSummary]):
-        with open(os.path.join(self.checkpoint_dir, self.checkpoint_file), "w") as f:
-            for summary in summaries:
-                f.write(summary.model_dump_json() + "\n")
-
-        print(
-            f"Saved {len(summaries)} summaries to {os.path.join(self.checkpoint_dir, self.checkpoint_file)}"
-        )
 
     async def summarise(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
-        if os.path.exists(os.path.join(self.checkpoint_dir, self.checkpoint_file)):
-            return self.load_checkpoint()
-
         summaries = await tqdm_asyncio.gather(
             *[
                 self.summarise_conversation(conversation)
@@ -58,8 +31,6 @@ class SummaryModel(BaseSummaryModel):
             ],
             desc=f"Summarising {len(conversations)} conversations",
         )
-
-        self.save_checkpoint(summaries)
         return summaries
 
     async def apply_hooks(

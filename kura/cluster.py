@@ -19,35 +19,11 @@ class ClusterModel(BaseClusterModel):
         client=instructor.from_gemini(
             genai.GenerativeModel("gemini-1.5-flash-latest"), use_async=True
         ),
-        checkpoint_dir: str = "checkpoints",
-        checkpoint_file: str = "cluster_checkpoint.json",
     ):
         self.clustering_method = clustering_method
         self.embedding_model = embedding_model
         self.max_concurrent_requests = max_concurrent_requests
         self.client = client
-        self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_file = checkpoint_file
-
-        if not os.path.exists(self.checkpoint_dir):
-            print(f"Creating checkpoint directory {self.checkpoint_dir}")
-            os.makedirs(self.checkpoint_dir)
-
-    def save_checkpoint(self, clusters: list[Cluster]):
-        with open(os.path.join(self.checkpoint_dir, self.checkpoint_file), "w") as f:
-            for cluster in clusters:
-                f.write(cluster.model_dump_json() + "\n")
-
-        print(
-            f"Saved checkpoint to {os.path.join(self.checkpoint_dir, self.checkpoint_file)}"
-        )
-
-    def load_checkpoint(self) -> list[Cluster]:
-        print(
-            f"Loading Cluster Checkpoint from {os.path.join(self.checkpoint_dir, self.checkpoint_file)}"
-        )
-        with open(os.path.join(self.checkpoint_dir, self.checkpoint_file), "r") as f:
-            return [Cluster.model_validate_json(line) for line in f]
 
     def get_contrastive_examples(
         self,
@@ -129,9 +105,6 @@ class ClusterModel(BaseClusterModel):
     async def cluster_summaries(
         self, summaries: list[ConversationSummary]
     ) -> list[Cluster]:
-        if os.path.exists(os.path.join(self.checkpoint_dir, self.checkpoint_file)):
-            return self.load_checkpoint()
-
         sem = Semaphore(self.max_concurrent_requests)
         embeddings: list[list[float]] = await tqdm_asyncio.gather(
             *[
@@ -162,5 +135,5 @@ class ClusterModel(BaseClusterModel):
             ],
             desc="Generating Base Clusters",
         )
-        self.save_checkpoint(clusters)
+
         return clusters

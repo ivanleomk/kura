@@ -13,25 +13,12 @@ class HDBUMAP(BaseDimensionalityReduction):
     def __init__(
         self,
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
-        checkpoint_dir: str = "checkpoints",
-        checkpoint_name: str = "dimensionality_checkpoints.json",
     ):
         self.embedding_model = embedding_model
-        self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_name = checkpoint_name
 
     async def reduce_dimensionality(
         self, clusters: list[Cluster]
     ) -> list[ProjectedCluster]:
-        if os.path.exists(os.path.join(self.checkpoint_dir, self.checkpoint_name)):
-            with open(
-                os.path.join(self.checkpoint_dir, self.checkpoint_name), "r"
-            ) as f:
-                print(
-                    f"Loading UMAP Checkpoint from {self.checkpoint_dir}/{self.checkpoint_name}"
-                )
-                return [ProjectedCluster.model_validate_json(line) for line in f]
-
         # Embed all clusters
         sem = asyncio.Semaphore(50)
         cluster_embeddings = await asyncio.gather(
@@ -69,11 +56,5 @@ class HDBUMAP(BaseDimensionalityReduction):
                 level=0 if cluster.parent_id is None else 1,
             )
             res.append(projected)
-
-        with open(os.path.join(self.checkpoint_dir, self.checkpoint_name), "w") as f:
-            for c in res:
-                f.write(c.model_dump_json() + "\n")
-
-        print(f"Saved UMAP Checkpoint to {self.checkpoint_dir}/{self.checkpoint_name}")
 
         return res

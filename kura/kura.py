@@ -26,14 +26,13 @@ class Kura:
         dimensionality_reduction: BaseDimensionalityReduction = HDBUMAP(),
         max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
+        summary_checkpoint_name: str = "summaries.json",
         cluster_checkpoint_name: str = "clusters.json",
         meta_cluster_checkpoint_name: str = "meta_clusters.json",
+        dimensionality_checkpoint_name: str = "dimensionality.json",
+        disable_checkpoints: bool = False,
     ):
         # TODO: Manage Checkpoints within Kura class itself so we can directly disable checkpointing easily
-        summarisation_model.checkpoint_dir = checkpoint_dir  # pyright: ignore
-        cluster_model.checkpoint_dir = checkpoint_dir  # pyright: ignore
-        meta_cluster_model.checkpoint_dir = checkpoint_dir  # pyright: ignore
-        dimensionality_reduction.checkpoint_dir = checkpoint_dir  # pyright: ignore
 
         self.embedding_model = embedding_model
         self.embedding_model = embedding_model
