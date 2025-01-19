@@ -5,6 +5,8 @@ from umap import UMAP
 import numpy as np
 import asyncio
 import os
+from numpy.typing import NDArray
+from numpy import float64
 
 
 class HDBUMAP(BaseDimensionalityReduction):
@@ -62,8 +64,8 @@ class HDBUMAP(BaseDimensionalityReduction):
                 description=cluster.description,
                 chat_ids=cluster.chat_ids,
                 parent_id=cluster.parent_id,
-                x_coord=float(reduced_embeddings[i][0]),
-                y_coord=float(reduced_embeddings[i][1]),
+                x_coord=float(reduced_embeddings[i][0]),  # pyright: ignore
+                y_coord=float(reduced_embeddings[i][1]),  # pyright: ignore
                 level=0 if cluster.parent_id is None else 1,
             )
             res.append(projected)

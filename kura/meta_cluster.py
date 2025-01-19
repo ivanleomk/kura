@@ -36,13 +36,14 @@ class ClusterLabel(BaseModel):
 
     @field_validator("higher_level_cluster")
     def validate_higher_level_cluster(cls, v: str, info: ValidationInfo) -> str:
-        if v not in info.context["candidate_clusters"]:
+        candidate_clusters = info.context["candidate_clusters"]  # pyright: ignore
+        if v not in candidate_clusters:
             raise ValueError(
                 f"""
                 Invalid higher-level cluster: |{v}|
                 
                 Valid clusters are:
-                {", ".join(f"|{c}|" for c in info.context["candidate_clusters"])}
+                {", ".join(f"|{c}|" for c in candidate_clusters)} 
                 """
             )
         return v
@@ -65,7 +66,7 @@ class MetaClusterModel(BaseMetaClusterModel):
 
     async def generate_candidate_clusters(
         self, clusters: list[Cluster], sem: Semaphore
-    ) -> list[Cluster]:
+    ) -> list[str]:
         async with sem:
             resp = await self.client.chat.completions.create(
                 messages=[

@@ -127,14 +127,17 @@ class ClusterModel(BaseClusterModel):
             )
 
     async def cluster_summaries(
-        self, items: list[ConversationSummary]
-    ) -> dict[int, list[ConversationSummary]]:
+        self, summaries: list[ConversationSummary]
+    ) -> list[Cluster]:
         if os.path.exists(os.path.join(self.checkpoint_dir, self.checkpoint_file)):
             return self.load_checkpoint()
 
         sem = Semaphore(self.max_concurrent_requests)
         embeddings: list[list[float]] = await tqdm_asyncio.gather(
-            *[self.embedding_model.embed(item.summary, sem) for item in items],
+            *[
+                self.embedding_model.embed(text=item.summary, sem=sem)
+                for item in summaries
+            ],
             desc="Embedding Summaries",
         )
         cluster_id_to_summaries = self.clustering_method.cluster(
@@ -143,7 +146,7 @@ class ClusterModel(BaseClusterModel):
                     "item": item,
                     "embedding": embedding,
                 }
-                for item, embedding in zip(items, embeddings)
+                for item, embedding in zip(summaries, embeddings)
             ]
         )
         clusters: list[Cluster] = await tqdm_asyncio.gather(

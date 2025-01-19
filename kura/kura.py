@@ -1,5 +1,5 @@
 from kura.dimensionality import HDBUMAP
-from kura.types import Conversation, Message, Cluster
+from kura.types import Conversation, Cluster
 from kura.embedding import OpenAIEmbeddingModel
 from kura.summarisation import SummaryModel
 from kura.meta_cluster import MetaClusterModel
@@ -29,11 +29,11 @@ class Kura:
         cluster_checkpoint_name: str = "clusters.json",
         meta_cluster_checkpoint_name: str = "meta_clusters.json",
     ):
-        # Override checkpoint dirs so that they're the same for the models
-        summarisation_model.checkpoint_dir = checkpoint_dir
-        cluster_model.checkpoint_dir = checkpoint_dir
-        meta_cluster_model.checkpoint_dir = checkpoint_dir
-        dimensionality_reduction.checkpoint_dir = checkpoint_dir
+        # TODO: Manage Checkpoints within Kura class itself so we can directly disable checkpointing easily
+        summarisation_model.checkpoint_dir = checkpoint_dir  # pyright: ignore
+        cluster_model.checkpoint_dir = checkpoint_dir  # pyright: ignore
+        meta_cluster_model.checkpoint_dir = checkpoint_dir  # pyright: ignore
+        dimensionality_reduction.checkpoint_dir = checkpoint_dir  # pyright: ignore
 
         self.embedding_model = embedding_model
         self.embedding_model = embedding_model

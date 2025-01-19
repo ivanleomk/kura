@@ -19,9 +19,15 @@ class KmeansClusteringMethod(BaseClusteringMethod):
 
         - its relevant embedding stored in the "embedding" key.
         - the item itself stored in the "item" key.
+
+        {
+            "embedding": list[float],
+            "item": any,
+        }
         """
-        embeddings = [item["embedding"] for item in items]
-        data: list[T] = [item["item"] for item in items]
+
+        embeddings = [item["embedding"] for item in items]  # pyright: ignore
+        data: list[T] = [item["item"] for item in items]  # pyright: ignore
         n_clusters = math.ceil(len(data) / self.clusters_per_group)
 
         X = np.array(embeddings)
