@@ -97,6 +97,22 @@ const UploadDialog = ({
           );
         }
       });
+    } else if (selectedType === "Kura") {
+      file.text().then((text) => {
+        try {
+          const jsonData = JSON.parse(text);
+          const conversations = jsonData;
+          const parsedConversations = ConversationsSchema.parse(conversations);
+          addConversations({
+            type: "Kura",
+            file_name: file.name,
+            conversations: parsedConversations,
+          });
+          setIsDialogOpen(false);
+        } catch (error) {
+          console.log(error);
+        }
+      });
     } else {
       setError("OpenAI conversations are not supported yet");
     }
