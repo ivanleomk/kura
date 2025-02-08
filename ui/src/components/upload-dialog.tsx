@@ -30,6 +30,17 @@ type Props = {
   addConversations: (conversations: ConversationFile) => void;
 };
 
+const formatDate = (dateString: string | number) => {
+  const date = new Date(dateString);
+  
+  if (isNaN(date.getTime())) {
+    console.error("Invalid date:", dateString);
+    return "Invalid Date"; // Or handle it differently
+  }
+
+  return date.toISOString().replace(/\.(\d{3})Z$/, (_, ms) => `.${ms.padEnd(6, "0")}Z`);
+};
+
 const UploadDialog = ({
   isDialogOpen,
   setIsDialogOpen,
@@ -63,7 +74,7 @@ const UploadDialog = ({
           const conversations = jsonData.map((conversation: any) => {
             return {
               chat_id: conversation["uuid"],
-              created_at: conversation["created_at"],
+              created_at: formatDate(conversation["created_at"]),
               messages: conversation["chat_messages"]
                 .sort((a: any, b: any) => {
                   return (
@@ -73,7 +84,7 @@ const UploadDialog = ({
                 })
                 .map((message: any) => {
                   return {
-                    created_at: message["created_at"],
+                    created_at: formatDate(message["created_at"]),
                     role: message["sender"] === "human" ? "user" : "assistant",
                     content: message["content"]
                       .filter((item: any) => item["type"] === "text")
@@ -93,7 +104,7 @@ const UploadDialog = ({
         } catch (error) {
           console.log(error);
           setError(
-            "Unable to parse the conversations file. The file is either not in the correct format or has previously been added to the list of files"
+            "Unable to parse the Claude conversations file. The file is either not in the correct format or has previously been added to the list of files"
           );
         }
       });
@@ -111,10 +122,51 @@ const UploadDialog = ({
           setIsDialogOpen(false);
         } catch (error) {
           console.log(error);
+          setError(
+            "Unable to parse the Kura conversations file. The file is either not in the correct format or has previously been added to the list of files"
+          )
         }
       });
+    } else if (selectedType === "OpenAI") {
+        file.text().then((text) => {
+          try {
+            const jsonData = JSON.parse(text);
+            const conversations = jsonData.map((conversation: any) => {
+                const chat_id = conversation["conversation_id"];
+                const created_at = formatDate(conversation["create_time"] * 1000) // multiply by 1000 to convert unix timestamp seconds to milliseconds
+                
+                const messages = Object.values(conversation["mapping"])
+                .map((messageHolder: any) => messageHolder["message"])
+                .filter((message: any) => message && !["system", "tool"].includes(message["author"]["role"]))
+                .map((message: any) => {
+                    return {
+                    created_at: formatDate(message["create_time"] * 1000),
+                    role: message["author"]["role"] === "user" ? "user" : "assistant",
+                    content: message.content?.content_type === "text" && message.content.parts?.length
+                    ? message.content.parts[0].trim()
+                    : "",
+                    };
+                })
+                .filter((message: any) => message.content !== "");
+  
+                return { chat_id, created_at, messages };
+            });
+            const parsedConversations = ConversationsSchema.parse(conversations);
+            addConversations({
+              type: "OpenAI",
+              file_name: file.name,
+              conversations: parsedConversations,
+            });
+            setIsDialogOpen(false);
+          } catch (error) {
+            console.log(error);
+            setError(
+              "Unable to parse the OpenAI conversations file. The file is either not in the correct format or has previously been added to the list of files"
+            );
+          }
+        });
     } else {
-      setError("OpenAI conversations are not supported yet");
+        setError("The selected conversation type is not supported yet.");
     }
   };
 

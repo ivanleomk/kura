@@ -48,7 +48,7 @@ export function UploadForm({
       const jsonData = conversations
         .map((item) => item.conversations)
         .reduce((acc, curr) => acc.concat(curr), []);
-      setIsLoading(true);
+        
       const response = await fetch("http://127.0.0.1:8000/api/analyse", {
         method: "POST",
         headers: {
