@@ -7,7 +7,6 @@ import numpy as np
 from asyncio import Semaphore
 import instructor
 import google.generativeai as genai
-import os
 
 
 class ClusterModel(BaseClusterModel):

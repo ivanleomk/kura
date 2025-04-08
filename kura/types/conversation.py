@@ -16,6 +16,28 @@ class Conversation(BaseModel):
     messages: list[Message]
 
     @classmethod
+    def from_hf_dataset(
+        cls,
+        dataset_name: str,
+        split: str = "train",
+        *,
+        chat_id_fn: callable = lambda x: x["chat_id"],
+        created_at_fn: callable = lambda x: x["created_at"],
+        messages_fn: callable = lambda x: x["messages"],
+    ) -> list["Conversation"]:
+        from datasets import load_dataset
+
+        dataset = load_dataset(dataset_name, split=split)
+        return [
+            Conversation(
+                chat_id=chat_id_fn(conversation),
+                created_at=created_at_fn(conversation),
+                messages=messages_fn(conversation),
+            )
+            for conversation in dataset
+        ]
+
+    @classmethod
     def from_claude_conversation_dump(cls, file_path: str) -> list["Conversation"]:
         with open(file_path, "r") as f:
             return [
