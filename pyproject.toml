@@ -8,7 +8,6 @@ authors = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "instructor[google-generativeai]>=1.7.2",
     "pandas>=2.2.3",
     "rich>=13.9.4",
     "scikit-learn>=1.6.0",
@@ -17,6 +16,9 @@ dependencies = [
     "umap-learn>=0.5.7",
     "hdbscan>=0.8.40",
     "eval-type-backport>=0.2.2",
+    "jsonref>=1.1.0",
+    "google-genai>=1.10.0",
+    "instructor>=1.7.9",
 ]
 
 
