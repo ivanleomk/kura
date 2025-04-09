@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Literal
 import json
+import importlib
 
 
 class Message(BaseModel):
@@ -20,12 +21,15 @@ class Conversation(BaseModel):
         cls,
         dataset_name: str,
         split: str = "train",
-        *,
-        chat_id_fn: callable = lambda x: x["chat_id"],
-        created_at_fn: callable = lambda x: x["created_at"],
-        messages_fn: callable = lambda x: x["messages"],
+        chat_id_fn=lambda x: x["chat_id"],
+        created_at_fn=lambda x: x["created_at"],
+        messages_fn=lambda x: x["messages"],
     ) -> list["Conversation"]:
-        from datasets import load_dataset
+        if importlib.util.find_spec("datasets") is None:
+            raise ImportError(
+                "Please install hf datasets to load conversations from a dataset"
+            )
+        from datasets import load_dataset  # type: ignore
 
         dataset = load_dataset(dataset_name, split=split)
         return [

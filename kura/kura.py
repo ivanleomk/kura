@@ -1,5 +1,5 @@
 from kura.dimensionality import HDBUMAP
-from kura.types import Conversation, Cluster
+from kura.types import Conversation, Cluster, ClusterTreeNode
 from kura.embedding import OpenAIEmbeddingModel
 from kura.summarisation import SummaryModel
 from kura.meta_cluster import MetaClusterModel
@@ -16,7 +16,6 @@ from typing import Union
 import os
 from typing import TypeVar
 from pydantic import BaseModel
-from treelib import Tree
 from kura.types.dimensionality import ProjectedCluster
 from kura.types.summarisation import ConversationSummary
 
@@ -174,8 +173,8 @@ class Kura:
 
     def _build_tree_structure(
         self,
-        node: dict,
-        node_id_to_cluster: dict[str, Cluster],
+        node: ClusterTreeNode,
+        node_id_to_cluster: dict[str, ClusterTreeNode],
         level: int = 0,
         is_last: bool = True,
         prefix: str = "",
@@ -219,13 +218,13 @@ class Kura:
         node_id_to_cluster = {}
 
         for node in clusters:
-            node_id_to_cluster[node.id] = {
-                "id": node.id,
-                "name": node.name,
-                "description": node.description,
-                "count": node.count,
-                "children": [],
-            }
+            node_id_to_cluster[node.id] = ClusterTreeNode(
+                id=node.id,
+                name=node.name,
+                description=node.description,
+                count=node.count,
+                children=[],
+            )
 
         for node in clusters:
             if node.parent_id:
@@ -237,13 +236,13 @@ class Kura:
             node_id_to_cluster[node.id] for node in clusters if not node.parent_id
         ]
 
-        fake_root = {
-            "id": "root",
-            "name": "Clusters",
-            "description": "All clusters",
-            "count": 0,
-            "children": [node["id"] for node in root_nodes],
-        }
+        fake_root = ClusterTreeNode(
+            id="root",
+            name="Clusters",
+            description="All clusters",
+            count=0,
+            children=[node["id"] for node in root_nodes],
+        )
 
         tree_output += self._build_tree_structure(
             fake_root, node_id_to_cluster, 0, False
