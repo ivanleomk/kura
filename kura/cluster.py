@@ -6,7 +6,7 @@ from tqdm.asyncio import tqdm_asyncio
 import numpy as np
 from asyncio import Semaphore
 import instructor
-import google.generativeai as genai
+from google.genai import Client
 
 
 class ClusterModel(BaseClusterModel):
@@ -15,14 +15,14 @@ class ClusterModel(BaseClusterModel):
         clustering_method: BaseClusteringMethod = KmeansClusteringMethod(),
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         max_concurrent_requests: int = 50,
-        client=instructor.from_gemini(
-            genai.GenerativeModel("gemini-1.5-flash-latest"), use_async=True
-        ),
+        client=instructor.from_genai(Client(), use_async=True),
+        model="gemini-2.0-flash",
     ):
         self.clustering_method = clustering_method
         self.embedding_model = embedding_model
         self.max_concurrent_requests = max_concurrent_requests
         self.client = client
+        self.model = model
 
     def get_contrastive_examples(
         self,
@@ -50,6 +50,7 @@ class ClusterModel(BaseClusterModel):
     ) -> Cluster:
         async with sem:
             resp = await self.client.chat.completions.create(
+                model=self.model,
                 messages=[
                     {
                         "role": "system",
