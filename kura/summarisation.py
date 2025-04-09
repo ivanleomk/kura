@@ -3,23 +3,22 @@ from kura.types import Conversation, ConversationSummary
 from kura.types.summarisation import GeneratedSummary
 from asyncio import Semaphore
 from tqdm.asyncio import tqdm_asyncio
-import google.generativeai as genai
+from google.genai import Client
 import instructor
-import os
 
 
 class SummaryModel(BaseSummaryModel):
     def __init__(
         self,
         max_concurrent_requests: int = 50,
+        client: instructor.AsyncInstructor = instructor.from_genai(
+            Client(), use_async=True
+        ),
+        model: str = "gemini-2.0-flash",
     ):
         self.sem = Semaphore(max_concurrent_requests)
-        self.client = instructor.from_gemini(
-            genai.GenerativeModel(
-                model_name="gemini-1.5-flash-latest",
-            ),
-            use_async=True,
-        )
+        self.client = client
+        self.model = model
 
     async def summarise(
         self, conversations: list[Conversation]
@@ -43,6 +42,7 @@ class SummaryModel(BaseSummaryModel):
         self, conversation: Conversation
     ) -> ConversationSummary:
         resp = await self.client.chat.completions.create(
+            model=self.model,
             messages=[
                 {
                     "role": "system",
@@ -54,26 +54,29 @@ class SummaryModel(BaseSummaryModel):
                     - The user’s overall request for the assistant is to help implementing a React component to display a paginated list of users from a database.
                     - The user’s overall request for the assistant is to debug a memory leak in their Python data processing pipeline.
                     - The user’s overall request for the assistant is to design and architect a REST API for a social media application.
-                    
-
-                    Here is the conversation
-                    <messages>
-                    {% for message in messages %}
-                        <message>{{message.role}}: {{message.content}} </message>
-                    {% endfor %}
-                    </messages>
-
-                    When answering, do not include any personally identifiable information (PII), like names, locations, phone numbers, email addressess, and so on. When answering, do not include any proper nouns. Make sure that you're clear, concise and that you get to the point in at most two sentences.
-                    
-                    For example:
-
-                    Remember that
-                    - Summaries should be concise and short. They should each be at most 1-2 sentences and at most 30 words.
-                    - Summaries should start with "The user's overall request for the assistant is to"
-                    - Make sure to omit any personally identifiable information (PII), like names, locations, phone numbers, email addressess, company names and so on.
-                    - Make sure to indicate specific details such as programming languages, frameworks, libraries and so on which are relevant to the task.
                     """,
-                }
+                },
+                {
+                    "role": "user",
+                    "content": """
+Here is the conversation
+<messages>
+{% for message in messages %}
+    <message>{{message.role}}: {{message.content}} </message>
+{% endfor %}
+</messages>
+
+When answering, do not include any personally identifiable information (PII), like names, locations, phone numbers, email addressess, and so on. When answering, do not include any proper nouns. Make sure that you're clear, concise and that you get to the point in at most two sentences.
+
+For example:
+
+Remember that
+- Summaries should be concise and short. They should each be at most 1-2 sentences and at most 30 words.
+- Summaries should start with "The user's overall request for the assistant is to"
+- Make sure to omit any personally identifiable information (PII), like names, locations, phone numbers, email addressess, company names and so on.
+- Make sure to indicate specific details such as programming languages, frameworks, libraries and so on which are relevant to the task.
+                    """,
+                },
             ],
             context={"messages": conversation.messages},
             response_model=GeneratedSummary,

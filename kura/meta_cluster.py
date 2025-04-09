@@ -8,7 +8,7 @@ from kura.types.cluster import Cluster, GeneratedCluster
 from kura.embedding import OpenAIEmbeddingModel
 from kura.k_means import KmeansClusteringMethod
 import instructor
-import google.generativeai as genai
+from google.genai import Client
 from tqdm.asyncio import tqdm_asyncio
 from asyncio import Semaphore
 from pydantic import BaseModel, field_validator, ValidationInfo
@@ -53,9 +53,8 @@ class MetaClusterModel(BaseMetaClusterModel):
     def __init__(
         self,
         max_concurrent_requests: int = 50,
-        client=instructor.from_gemini(
-            genai.GenerativeModel("gemini-1.5-flash-latest"), use_async=True
-        ),
+        client=instructor.from_genai(Client(), use_async=True),
+        model="gemini-2.0-flash",
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         clustering_model: BaseClusteringMethod = KmeansClusteringMethod(12),
     ):
@@ -63,15 +62,17 @@ class MetaClusterModel(BaseMetaClusterModel):
         self.client = client
         self.embedding_model = embedding_model
         self.clustering_model = clustering_model
+        self.model = model
 
     async def generate_candidate_clusters(
         self, clusters: list[Cluster], sem: Semaphore
     ) -> list[str]:
         async with sem:
             resp = await self.client.chat.completions.create(
+                model=self.model,
                 messages=[
                     {
-                        "role": "system",
+                        "role": "user",
                         "content": """
                 You are tasked with creating higher-level cluster names based on a given list of clusters and their descriptions. Your goal is to come up with broader categories that could encompass one or more of the provided clusters
 
@@ -94,7 +95,7 @@ class MetaClusterModel(BaseMetaClusterModel):
                 
                 Focus on creating meaningful, distinct and precise ( but not overly specific ) higher-level cluster names that could encompass multiple sub-clusters.
                 """.strip(),
-                    }
+                    },
                 ],
                 response_model=CandidateClusters,
                 context={
@@ -108,9 +109,10 @@ class MetaClusterModel(BaseMetaClusterModel):
     async def label_cluster(self, cluster: Cluster, candidate_clusters: list[str]):
         async with self.sem:
             resp = await self.client.chat.completions.create(
+                model=self.model,
                 messages=[
                     {
-                        "role": "system",
+                        "role": "user",
                         "content": """
 You are tasked with categorizing a specific cluster into one of the provided higher-level clusters for observability, monitoring, and content moderation. Your goal is to determine which higher-level cluster best fits the given specific cluster based on its name and description.
 
@@ -168,6 +170,7 @@ Based on this information, determine the most appropriate higher-level cluster a
     async def rename_cluster_group(self, clusters: list[Cluster]) -> list[Cluster]:
         async with self.sem:
             resp = await self.client.chat.completions.create(
+                model=self.model,
                 messages=[
                     {
                         "role": "system",
@@ -178,18 +181,20 @@ Based on this information, determine the most appropriate higher-level cluster a
 
                         Do not shy away from describing socially harmful or sensitive topics. For instance, "Write fantasy sexual roleplay with octopi and monsters", "Generate blog spam for gambling websites", or "Assist with high school math homework" would be better than "Write erotic content" or "Help with homework". Be as descriptive as possible and assume neither good nor bad faith. Do not hesitate to identify and describe socially harmful or sensitive topics specifically; specificity is necessary for monitoring.
 
-                        The cluster description should be a clear, precise, two-sentence description in the past tense. This description should be specific to this cluster. Make sure that you've captured the most important details of the cluster.
-                        
-                        Below are the related cluster names
+                        Ensure your summary and name accurately represent the clusters and are specific to the clusters.
+                        """,
+                    },
+                    {
+                        "role": "user",
+                        "content": """
+                        Here are the related cluster names
                         <clusters>
                             {% for cluster in clusters %}
                                 <cluster>{{ cluster.name }}: {{ cluster.description }}</cluster>
                             {% endfor %}
                         </clusters>
-
-                        Ensure your summary and name accurately represent the clusters and are specific to the clusters.
                         """,
-                    }
+                    },
                 ],
                 context={"clusters": clusters},
                 response_model=GeneratedCluster,
