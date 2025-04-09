@@ -222,7 +222,7 @@ class Kura:
                 id=node.id,
                 name=node.name,
                 description=node.description,
-                count=node.count,
+                count=node.count,  # type: ignore
                 children=[],
             )
 

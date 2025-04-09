@@ -25,7 +25,7 @@ class Conversation(BaseModel):
         created_at_fn=lambda x: x["created_at"],
         messages_fn=lambda x: x["messages"],
     ) -> list["Conversation"]:
-        if importlib.util.find_spec("datasets") is None:
+        if importlib.util.find_spec("datasets") is None:  # type: ignore
             raise ImportError(
                 "Please install hf datasets to load conversations from a dataset"
             )
