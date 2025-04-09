@@ -26,5 +26,5 @@ class ClusterTreeNode(BaseModel):
     id: str
     name: str
     description: str
-    count: str
+    count: int
     children: list[str]

@@ -190,7 +190,7 @@ class Kura:
                 current_prefix += "╠══ "
 
         # Print the current node
-        result = current_prefix + node["name"] + "\n"
+        result = current_prefix + node.name + "\n"
 
         # Calculate the prefix for children
         child_prefix = prefix
@@ -201,7 +201,7 @@ class Kura:
                 child_prefix += "║   "
 
         # Process children
-        children = node["children"]
+        children = node.children
         for i, child_id in enumerate(children):
             child = node_id_to_cluster[child_id]
             is_last_child = i == len(children) - 1
@@ -228,7 +228,7 @@ class Kura:
 
         for node in clusters:
             if node.parent_id:
-                node_id_to_cluster[node.parent_id]["children"].append(node.id)
+                node_id_to_cluster[node.parent_id].children.append(node.id)
 
         # Find root nodes and build the tree
         tree_output = ""
@@ -241,7 +241,7 @@ class Kura:
             name="Clusters",
             description="All clusters",
             count=0,
-            children=[node["id"] for node in root_nodes],
+            children=[node.id for node in root_nodes],
         )
 
         tree_output += self._build_tree_structure(
