@@ -1,5 +1,5 @@
 from kura.dimensionality import HDBUMAP
-from kura.types import Conversation, Cluster
+from kura.types import Conversation, Cluster, ClusterTreeNode
 from kura.embedding import OpenAIEmbeddingModel
 from kura.summarisation import SummaryModel
 from kura.meta_cluster import MetaClusterModel
@@ -16,7 +16,6 @@ from typing import Union
 import os
 from typing import TypeVar
 from pydantic import BaseModel
-
 from kura.types.dimensionality import ProjectedCluster
 from kura.types.summarisation import ConversationSummary
 
@@ -171,3 +170,82 @@ class Kura:
         )
 
         return dimensionality_reduced_clusters
+
+    def _build_tree_structure(
+        self,
+        node: ClusterTreeNode,
+        node_id_to_cluster: dict[str, ClusterTreeNode],
+        level: int = 0,
+        is_last: bool = True,
+        prefix: str = "",
+    ):
+        # Current line prefix
+        current_prefix = prefix
+
+        # Add the appropriate connector based on whether this is the last child
+        if level > 0:
+            if is_last:
+                current_prefix += "╚══ "
+            else:
+                current_prefix += "╠══ "
+
+        # Print the current node
+        result = current_prefix + node.name + "\n"
+
+        # Calculate the prefix for children
+        child_prefix = prefix
+        if level > 0:
+            if is_last:
+                child_prefix += "    "
+            else:
+                child_prefix += "║   "
+
+        # Process children
+        children = node.children
+        for i, child_id in enumerate(children):
+            child = node_id_to_cluster[child_id]
+            is_last_child = i == len(children) - 1
+            result += self._build_tree_structure(
+                child, node_id_to_cluster, level + 1, is_last_child, child_prefix
+            )
+
+        return result
+
+    def visualise_clusters(self):
+        with open(self.meta_cluster_checkpoint_name) as f:
+            clusters = [Cluster.model_validate_json(line) for line in f]
+
+        node_id_to_cluster = {}
+
+        for node in clusters:
+            node_id_to_cluster[node.id] = ClusterTreeNode(
+                id=node.id,
+                name=node.name,
+                description=node.description,
+                count=node.count,  # type: ignore
+                children=[],
+            )
+
+        for node in clusters:
+            if node.parent_id:
+                node_id_to_cluster[node.parent_id].children.append(node.id)
+
+        # Find root nodes and build the tree
+        tree_output = ""
+        root_nodes = [
+            node_id_to_cluster[node.id] for node in clusters if not node.parent_id
+        ]
+
+        fake_root = ClusterTreeNode(
+            id="root",
+            name="Clusters",
+            description="All clusters",
+            count=0,
+            children=[node.id for node in root_nodes],
+        )
+
+        tree_output += self._build_tree_structure(
+            fake_root, node_id_to_cluster, 0, False
+        )
+
+        print(tree_output)

@@ -20,3 +20,11 @@ class Cluster(BaseModel):
 class GeneratedCluster(BaseModel):
     name: str
     summary: str
+
+
+class ClusterTreeNode(BaseModel):
+    id: str
+    name: str
+    description: str
+    count: int
+    children: list[str]

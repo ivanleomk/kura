@@ -35,7 +35,7 @@ docs = [
     "pymdown-extensions>=10.14",
 ]
 dev = [
-    "pyright>=1.1.392.post0",
+    "pyright>=1.1.398"
 ]
 
 

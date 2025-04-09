@@ -2,40 +2,56 @@
 
 ## What is Kura?
 
-Kura is a library that aims to help you make sense of user data. By using language models to iteratively summarise and cluster conversations, it provides a modular and flexible way for you to understand broad high level trends in your user base.
+> Kura is kindly sponsored by [Improving RAG](http://improvingrag.com). If you're wondering what goes on behind the scenes of any production RAG application, ImprovingRAG gives you a clear roadmap as to how to achieve it.
 
-It's built with the same ideas as [CLIO](https://www.anthropic.com/research/clio) but open-sourced so that you can try it on your own data. I've written a [walkthrough of the code](https://ivanleo.com/blog/understanding-user-conversations) that you can read to understand the high level ideas behind CLIO.
+Kura makes it easy to make sense of user data using language models like Gemini. By iteratively summarising and clustering conversations, we can understand broad usage patterns, helping us focus on the specific features to prioritise or issues to fix. It's built with the same ideas as Anthropic's [CLIO](https://www.anthropic.com/research/clio) but open-sourced so that you can try it on your own data.
 
-The work behind Kura is kindly sponsored by [Improving RAG](http://improvingrag.com). If you're looking for a way to make sense of user data and tame your user application, please check them out.
+I've written a [walkthrough of the code](https://ivanleo.com/blog/understanding-user-conversations) if you're interested in understanding the high level ideas.
 
-### Why is it useful?
+## Instructions
 
-By combining traditional clustering techniques with language models, we can get a much better understanding of the underlying structure of your data. For instance, using kura, we can identify clusters not by the content of the conversations but by the specific user intent.
+> Kura requires python 3.9 because of our dependency on UMAP.
 
-Our API is designed to be modular and flexible so that you can easily extend it to fit your needs. Here's an example of how you can use it to cluster your own claude conversation history.
+Get started by installing Kura using `pip`. We recommend using `uv` to do so.
 
-!!! note
+```
+uv pip install kura datasets
+```
 
-    If you're using a different formatting for your messages, you can also just manually create a list of `Convesation` objects and pass them into the `cluster_conversations` method. This is useful if you're exporting conversations from a different source
+To test Kura out, we've provided a sample dataset of [~190+ synthetically generated conversations](https://huggingface.co/datasets/ivanleomk/synthetic-gemini-conversations) on Hugging Face that we used to validate Kura's clustering ability.
 
 ```py
 from kura import Kura
-from asyncio import run
 from kura.types import Conversation
-
+import asyncio
 
 kura = Kura()
-conversations: list[Conversation] = Conversation.from_claude_conversation_dump(
-    "conversations.json"
+conversations = Conversation.from_hf_dataset(
+    "ivanleomk/synthetic-gemini-conversations", split="train"
 )
-run(kura.cluster_conversations(conversations))
+asyncio.run(kura.cluster_conversations(conversations))
+
+kura.visualise_clusters()
 ```
 
-## Roadmap
+This will print out a list of clusters as seen below that we've identified
 
-Kura is currently under active development and I'm working on adding more features to it. On a high level, I'm working on writing out more examples on how to swap out specific components of the pipeline to fit your needs as well as to improve on the support for different conversation formats.
+```bash
+╠══ Compare and improve Flutter and React state management
+║   ╚══ Improve and compare Flutter and React state management
+║       ╠══ Improve React TypeScript application
+║       ╚══ Compare and select Flutter state management solutions
+╠══ Optimize blog posts for SEO and improved user engagement
+.....
+```
 
-Here's a rough roadmap of what I'm working on, contributions are welcome!
+### Claude Conversations
+
+> If you're using the Claude app, you can export your conversation history [here](https://support.anthropic.com/en/articles/9450526-how-can-i-export-my-claude-ai-data) and use the `Conversation.from_claude_conversation_dump` method to load them into Kura.
+
+We also support Claude conversations out of the box, which you can import as seen below.
+
+<--- Old Stuff ---->
 
 - [x] Implement a simple Kura clustering class
 - [x] Implement a Kura CLI tool
@@ -69,12 +85,6 @@ To get started with Kura, you'll need to install our python package and have a l
     ```bash
     uv pip install kura
     ```
-
-If you're using the Claude app, you can export your conversation history [here](https://support.anthropic.com/en/articles/9450526-how-can-i-export-my-claude-ai-data) and use the `Conversation.from_claude_conversation_dump` method to load them into Kura.
-
-If you don't have a list of conversations on hand, we've also uploaded a sample dataset of [190+ conversations onto hugging face](https://huggingface.co/datasets/ivanleomk/synthetic-gemini-conversations) that were synthetically generated by Gemini which we used to validate Kura's clustering ability.
-
-Kura ships with an automatic checkpointing system that saves the state of the clustering process to disk so that you can resume from where you left off so there's no need to worry about losing your clustering progress.
 
 With your conversations on hand, there are two ways that you can run clustering with Kura.
 
