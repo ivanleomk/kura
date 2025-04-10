@@ -190,7 +190,7 @@ class Kura:
                 current_prefix += "╠══ "
 
         # Print the current node
-        result = current_prefix + node.name + "\n"
+        result = current_prefix + node.name + " (" + str(node.count) + ")\n"
 
         # Calculate the prefix for children
         child_prefix = prefix

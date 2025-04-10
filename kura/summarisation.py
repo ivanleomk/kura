@@ -1,10 +1,12 @@
 from kura.base_classes import BaseSummaryModel
-from kura.types import Conversation, ConversationSummary
+from kura.types import Conversation, ConversationSummary, ExtractedProperty
 from kura.types.summarisation import GeneratedSummary
-from asyncio import Semaphore
+from asyncio import Semaphore, gather
 from tqdm.asyncio import tqdm_asyncio
 from google.genai import Client
 import instructor
+from typing import Callable
+import asyncio
 
 
 class SummaryModel(BaseSummaryModel):
@@ -15,14 +17,25 @@ class SummaryModel(BaseSummaryModel):
             Client(), use_async=True
         ),
         model: str = "gemini-2.0-flash",
+        extractors: list[
+            Callable[
+                [Conversation, Semaphore, instructor.AsyncInstructor],
+                dict,
+            ]
+        ] = [],
     ):
-        self.sem = Semaphore(max_concurrent_requests)
+        self.max_concurrent_requests = max_concurrent_requests
+        self.sem = None
         self.client = client
         self.model = model
+        self.extractors = extractors
 
     async def summarise(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
+        if self.sem is None:
+            self.sem = asyncio.Semaphore(self.max_concurrent_requests)
+
         summaries = await tqdm_asyncio.gather(
             *[
                 self.summarise_conversation(conversation)
@@ -32,11 +45,13 @@ class SummaryModel(BaseSummaryModel):
         )
         return summaries
 
-    async def apply_hooks(
-        self, conversation: ConversationSummary
-    ) -> ConversationSummary:
-        # TODO: Implement hooks here for extra metadata extraction
-        return await super().apply_hooks(conversation)
+    async def apply_hooks(self, conversation: Conversation) -> dict[str, any]:
+        coros = [
+            extractor(conversation, self.sem, self.client)
+            for extractor in self.extractors
+        ]
+        results = await gather(*coros)
+        return {result.name: result.value for result in results}
 
     async def summarise_conversation(
         self, conversation: Conversation
@@ -51,9 +66,9 @@ class SummaryModel(BaseSummaryModel):
 
 
                     The summary should be concise and short. It should be at most 1-2 sentences and at most 30 words. Here are some examples of summaries:
-                    - The user’s overall request for the assistant is to help implementing a React component to display a paginated list of users from a database.
-                    - The user’s overall request for the assistant is to debug a memory leak in their Python data processing pipeline.
-                    - The user’s overall request for the assistant is to design and architect a REST API for a social media application.
+                    - The user's overall request for the assistant is to help implementing a React component to display a paginated list of users from a database.
+                    - The user's overall request for the assistant is to debug a memory leak in their Python data processing pipeline.
+                    - The user's overall request for the assistant is to design and architect a REST API for a social media application.
                     """,
                 },
                 {
@@ -81,10 +96,12 @@ Remember that
             context={"messages": conversation.messages},
             response_model=GeneratedSummary,
         )
+        metadata = await self.apply_hooks(conversation)
         return ConversationSummary(
             chat_id=conversation.chat_id,
             summary=resp.summary,
             metadata={
                 "conversation_turns": len(conversation.messages),
+                **metadata,
             },
         )
