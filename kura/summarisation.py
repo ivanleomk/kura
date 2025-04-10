@@ -1,5 +1,6 @@
 from kura.base_classes import BaseSummaryModel
-from kura.types import Conversation, ConversationSummary, ExtractedProperty
+from kura.types import Conversation, ConversationSummary
+from typing import Union
 from kura.types.summarisation import GeneratedSummary
 from asyncio import Semaphore, gather
 from tqdm.asyncio import tqdm_asyncio
@@ -45,12 +46,17 @@ class SummaryModel(BaseSummaryModel):
         )
         return summaries
 
-    async def apply_hooks(self, conversation: Conversation) -> dict[str, any]:
+    async def apply_hooks(
+        self, conversation: Conversation
+    ) -> dict[str, Union[str, int, float, bool, list[str], list[int], list[float]]]:
+        assert self.sem is not None, (
+            f"Semaphore is not set for {self.__class__.__name__}"
+        )
         coros = [
             extractor(conversation, self.sem, self.client)
             for extractor in self.extractors
         ]
-        results = await gather(*coros)
+        results = await gather(*coros)  # pyright: ignore
         return {result.name: result.value for result in results}
 
     async def summarise_conversation(

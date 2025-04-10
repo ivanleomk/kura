@@ -244,7 +244,7 @@ class Kura:
                 id=node.id,
                 name=node.name,
                 description=node.description,
-                count=node.count,  # type: ignore
+                count=node.count,  # pyright: ignore
                 children=[],
             )
 

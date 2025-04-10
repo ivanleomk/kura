@@ -20,7 +20,7 @@ class Conversation(BaseModel):
     @classmethod
     def generate_conversation_dump(
         cls, conversations: list["Conversation"], file_path: str
-    ) -> list["Conversation"]:
+    ) -> None:
         with open(file_path, "w") as f:
             json.dump(
                 [
@@ -40,7 +40,7 @@ class Conversation(BaseModel):
         cls,
         dataset_name: str,
         split: str = "train",
-        max_conversations: int = None,
+        max_conversations: Union[int, None] = None,
         chat_id_fn=lambda x: x["chat_id"],
         created_at_fn=lambda x: x["created_at"],
         messages_fn=lambda x: x["messages"],
