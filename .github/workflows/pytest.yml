@@ -15,6 +15,7 @@ jobs:
         python-version: ["3.9"]
     env:
       OPENAI_API_KEY: ""
+      GEMINI_API_KEY: ""
 
     steps:
       - name: Checkout code
