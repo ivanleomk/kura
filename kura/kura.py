@@ -4,6 +4,7 @@ from kura.embedding import OpenAIEmbeddingModel
 from kura.summarisation import SummaryModel
 from kura.meta_cluster import MetaClusterModel
 from kura.cluster import ClusterModel
+import shutil
 from kura.base_classes import (
     BaseEmbeddingModel,
     BaseSummaryModel,
@@ -11,7 +12,6 @@ from kura.base_classes import (
     BaseMetaClusterModel,
     BaseDimensionalityReduction,
 )
-from pathlib import Path
 from typing import Union
 import os
 from typing import TypeVar
@@ -32,11 +32,13 @@ class Kura:
         dimensionality_reduction: BaseDimensionalityReduction = HDBUMAP(),
         max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
+        conversation_checkpoint_name: str = "conversations.json",
         summary_checkpoint_name: str = "summaries.jsonl",
         cluster_checkpoint_name: str = "clusters.jsonl",
         meta_cluster_checkpoint_name: str = "meta_clusters.jsonl",
         dimensionality_checkpoint_name: str = "dimensionality.jsonl",
         disable_checkpoints: bool = False,
+        override_checkpoint_dir: bool = False,
     ):
         # Define Models that we're using
         self.embedding_model = embedding_model
@@ -49,6 +51,9 @@ class Kura:
 
         # Define Checkpoints
         self.checkpoint_dir = os.path.join(checkpoint_dir)
+        self.conversation_checkpoint_name = os.path.join(
+            self.checkpoint_dir, conversation_checkpoint_name
+        )
         self.cluster_checkpoint_name = os.path.join(
             self.checkpoint_dir, cluster_checkpoint_name
         )
@@ -62,12 +67,7 @@ class Kura:
             self.checkpoint_dir, summary_checkpoint_name
         )
         self.disable_checkpoints = disable_checkpoints
-
-        if not os.path.exists(self.checkpoint_dir) and not self.disable_checkpoints:
-            os.makedirs(self.checkpoint_dir)
-
-        if not self.disable_checkpoints:
-            print(f"Checkpoint directory: {Path(self.checkpoint_dir)}")
+        self.override_checkpoint_dir = override_checkpoint_dir
 
     def load_checkpoint(
         self, checkpoint_path: str, response_model: type[T]
@@ -86,6 +86,18 @@ class Kura:
             with open(checkpoint_path, "w") as f:
                 for item in data:
                     f.write(item.model_dump_json() + "\n")
+
+    def setup_checkpoint_dir(self):
+        if self.disable_checkpoints:
+            return
+
+        if not os.path.exists(self.checkpoint_dir):
+            os.makedirs(self.checkpoint_dir)
+
+        if self.override_checkpoint_dir:
+            # We will just remove all files for now
+            shutil.rmtree(self.checkpoint_dir)
+            os.makedirs(self.checkpoint_dir)
 
     async def reduce_clusters(self, clusters: list[Cluster]) -> list[Cluster]:
         checkpoint_items = self.load_checkpoint(
@@ -162,6 +174,14 @@ class Kura:
         return dimensionality_reduced_clusters
 
     async def cluster_conversations(self, conversations: list[Conversation]):
+        self.setup_checkpoint_dir()
+
+        # Configure the checkpoint directory
+        if not self.disable_checkpoints:
+            Conversation.generate_conversation_dump(
+                conversations, self.conversation_checkpoint_name
+            )
+
         summaries = await self.summarise_conversations(conversations)
         clusters: list[Cluster] = await self.generate_base_clusters(summaries)
         processed_clusters: list[Cluster] = await self.reduce_clusters(clusters)
@@ -190,7 +210,9 @@ class Kura:
                 current_prefix += "╠══ "
 
         # Print the current node
-        result = current_prefix + node.name + " (" + str(node.count) + ")\n"
+        result = (
+            current_prefix + node.name + " (" + str(node.count) + " conversations)\n"
+        )
 
         # Calculate the prefix for children
         child_prefix = prefix
@@ -222,7 +244,7 @@ class Kura:
                 id=node.id,
                 name=node.name,
                 description=node.description,
-                count=node.count,  # type: ignore
+                count=node.count,  # pyright: ignore
                 children=[],
             )
 
@@ -240,7 +262,7 @@ class Kura:
             id="root",
             name="Clusters",
             description="All clusters",
-            count=0,
+            count=sum(node.count for node in root_nodes),
             children=[node.id for node in root_nodes],
         )
 

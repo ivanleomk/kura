@@ -13,6 +13,7 @@ from tqdm.asyncio import tqdm_asyncio
 from asyncio import Semaphore
 from pydantic import BaseModel, field_validator, ValidationInfo
 import re
+from thefuzz import fuzz
 
 
 class CandidateClusters(BaseModel):
@@ -37,15 +38,26 @@ class ClusterLabel(BaseModel):
     @field_validator("higher_level_cluster")
     def validate_higher_level_cluster(cls, v: str, info: ValidationInfo) -> str:
         candidate_clusters = info.context["candidate_clusters"]  # pyright: ignore
-        if v not in candidate_clusters:
-            raise ValueError(
-                f"""
-                Invalid higher-level cluster: |{v}|
-                
-                Valid clusters are:
-                {", ".join(f"|{c}|" for c in candidate_clusters)} 
-                """
-            )
+
+        # Exact match check
+        if v in candidate_clusters:
+            return v
+
+        # Fuzzy match check with 90% similarity threshold
+        for candidate in candidate_clusters:
+            similarity = fuzz.ratio(v, candidate)
+            if similarity >= 90:  # 90% similarity threshold
+                return candidate
+
+        # If no match found
+        raise ValueError(
+            f"""
+            Invalid higher-level cluster: |{v}|
+            
+            Valid clusters are:
+            {", ".join(f"|{c}|" for c in candidate_clusters)} 
+            """
+        )
         return v
 
 
@@ -87,7 +99,7 @@ class MetaClusterModel(BaseMetaClusterModel):
 
                 Guidelines for creating higher-level clusters names
                 1. Analyze the themes, topics or characteristics common to multiple clusters.
-                2. Create names that are specific enough to be meaningful but but not so specific that they can’t meaningfully represent many different clusters. Avoid overly general or vague terms, and do not hesitate to describe socially harmful or sensitive topics (in fact, clusters that clearly describe harmful behavior are slightly preferred); specificity is necessary for observability and enforcement.
+                2. Create names that are specific enough to be meaningful but but not so specific that they can't meaningfully represent many different clusters. Avoid overly general or vague terms, and do not hesitate to describe socially harmful or sensitive topics (in fact, clusters that clearly describe harmful behavior are slightly preferred); specificity is necessary for observability and enforcement.
                 3. Ensure that the higher-level cluster names are distinct from one another.
                 4. Use clear, concise, and descriptive language for the cluster names. Assume neither good nor bad faith for the content in the clusters.
 
@@ -180,7 +192,7 @@ Based on this information, determine the most appropriate higher-level cluster a
                         "content": """
                         You are tasked with summarizing a group of related cluster names into a short, precise, and accurate overall description and name. Your goal is to create a concise summary that captures the essence of these clusters
 
-                        The cluster name should be at most ten words long (perhaps less) and be specific but also reflective of most of the clusters that comprise them. The cluster name should be a sentence in the imperative that captures the user’s request. For example, ‘Brainstorm ideas for a birthday party’ or ‘Help me find a new job are good examples.
+                        The cluster name should be at most ten words long (perhaps less) and be specific but also reflective of most of the clusters that comprise them. The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job are good examples.
 
                         Do not shy away from describing socially harmful or sensitive topics. For instance, "Write fantasy sexual roleplay with octopi and monsters", "Generate blog spam for gambling websites", or "Assist with high school math homework" would be better than "Write erotic content" or "Help with homework". Be as descriptive as possible and assume neither good nor bad faith. Do not hesitate to identify and describe socially harmful or sensitive topics specifically; specificity is necessary for monitoring.
 

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 
 from kura.types import Conversation, ConversationSummary
+from typing import Union
 
 
 class BaseSummaryModel(ABC):
@@ -20,8 +21,8 @@ class BaseSummaryModel(ABC):
 
     @abstractmethod
     async def apply_hooks(
-        self, conversation: ConversationSummary
-    ) -> ConversationSummary:
+        self, conversation: Conversation
+    ) -> dict[str, Union[str, int, float, bool, list[str], list[int], list[float]]]:
         """Apply hooks to the conversation summary"""
         # Assert that the implementation of the class has a hooks attribute so we can call it in summarise_conversation
         assert hasattr(self, "hooks")
