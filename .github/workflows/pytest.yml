@@ -14,8 +14,8 @@ jobs:
         os: [ubuntu-latest]
         python-version: ["3.9"]
     env:
-      OPENAI_API_KEY: ""
-      GOOGLE_API_KEY: ""
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
       - name: Checkout code
