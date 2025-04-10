@@ -20,9 +20,7 @@ class CandidateClusters(BaseModel):
     candidate_cluster_names: list[str]
 
     @field_validator("candidate_cluster_names")
-    def validate_candidate_cluster_names(
-        cls, v: list[str], info: ValidationInfo
-    ) -> list[str]:
+    def validate_candidate_cluster_names(cls, v: list[str]) -> list[str]:
         if len(v) == 0:
             raise ValueError("Candidate cluster names must be a non-empty list")
 
