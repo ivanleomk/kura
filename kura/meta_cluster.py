@@ -100,7 +100,10 @@ class MetaClusterModel(BaseMetaClusterModel):
                 response_model=CandidateClusters,
                 context={
                     "clusters": clusters,
-                    "desired_number": math.ceil(len(clusters) / 2),
+                    "desired_number": math.ceil(len(clusters) / 2)
+                    if len(clusters)
+                    >= 3  # If we have two clusters we just merge them tbh
+                    else 1,
                 },
                 max_retries=3,
             )
@@ -264,6 +267,7 @@ Based on this information, determine the most appropriate higher-level cluster a
         In the event that we have a single cluster, we will just return a new higher level cluster which has the same name as the original cluster. ( This is an edge case which we should definitely handle better )
         """
         if len(clusters) == 1:
+            print("Only one cluster, returning it as a meta cluster")
             new_cluster = Cluster(
                 name=clusters[0].name,
                 description=clusters[0].description,

@@ -1,5 +1,5 @@
 from .conversation import Conversation, Message
-from .summarisation import ConversationSummary, GeneratedSummary
+from .summarisation import ConversationSummary, GeneratedSummary, ExtractedProperty
 from .cluster import Cluster, GeneratedCluster, ClusterTreeNode
 from .dimensionality import ProjectedCluster
 
@@ -12,4 +12,5 @@ __all__ = [
     "GeneratedCluster",
     "ProjectedCluster",
     "ClusterTreeNode",
+    "ExtractedProperty",
 ]

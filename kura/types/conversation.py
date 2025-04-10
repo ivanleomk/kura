@@ -1,8 +1,9 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Union
 import json
 import importlib
+from tqdm import tqdm
 
 
 class Message(BaseModel):
@@ -17,10 +18,29 @@ class Conversation(BaseModel):
     messages: list[Message]
 
     @classmethod
+    def generate_conversation_dump(
+        cls, conversations: list["Conversation"], file_path: str
+    ) -> list["Conversation"]:
+        with open(file_path, "w") as f:
+            json.dump(
+                [
+                    conversation.model_dump(mode="json")
+                    for conversation in conversations
+                ],
+                f,
+            )
+
+    @classmethod
+    def from_conversation_dump(cls, file_path: str) -> list["Conversation"]:
+        with open(file_path, "r") as f:
+            return [Conversation(**conversation) for conversation in json.load(f)]
+
+    @classmethod
     def from_hf_dataset(
         cls,
         dataset_name: str,
         split: str = "train",
+        max_conversations: int = None,
         chat_id_fn=lambda x: x["chat_id"],
         created_at_fn=lambda x: x["created_at"],
         messages_fn=lambda x: x["messages"],
@@ -31,14 +51,20 @@ class Conversation(BaseModel):
             )
         from datasets import load_dataset  # type: ignore
 
-        dataset = load_dataset(dataset_name, split=split)
+        if max_conversations:
+            dataset = load_dataset(dataset_name, split=split, streaming=True).take(
+                max_conversations
+            )
+        else:
+            dataset = load_dataset(dataset_name, split=split, streaming=True)
+
         return [
             Conversation(
-                chat_id=chat_id_fn(conversation),
-                created_at=created_at_fn(conversation),
-                messages=messages_fn(conversation),
+                chat_id=chat_id_fn(item),
+                created_at=created_at_fn(item),
+                messages=messages_fn(item),
             )
-            for conversation in dataset
+            for item in tqdm(dataset, desc="Loading Conversations")
         ]
 
     @classmethod
