@@ -108,6 +108,7 @@ Remember that
             summary=resp.summary,
             metadata={
                 "conversation_turns": len(conversation.messages),
+                **conversation.metadata,
                 **metadata,
             },
         )
