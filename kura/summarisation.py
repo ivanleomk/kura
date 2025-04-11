@@ -46,6 +46,13 @@ class SummaryModel(BaseSummaryModel):
                 sems[client_name] = asyncio.Semaphore(max_concurrent_requests)
             self.sems = sems
 
+        assert "default" in self.sems, (
+            "You must set a default semaphore for the main client"
+        )
+        assert "default" in self.clients, (
+            "You must set a default client for the main client"
+        )
+
         summaries = await tqdm_asyncio.gather(
             *[
                 self.summarise_conversation(conversation)
@@ -91,10 +98,10 @@ class SummaryModel(BaseSummaryModel):
     async def summarise_conversation(
         self, conversation: Conversation
     ) -> ConversationSummary:
-        client = self.clients.get("default")
-        sem = self.sems.get("default")
+        client = self.clients.get("default")  # type: ignore
+        sem = self.sems.get("default")  # type: ignore
         async with sem:
-            resp = await client.chat.completions.create(
+            resp = await client.chat.completions.create(  # type: ignore
                 model=self.model,
                 messages=[
                     {
