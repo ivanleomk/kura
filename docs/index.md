@@ -92,7 +92,8 @@ The following code below works and loads the first 2000 entries from the non-tox
 
 ```python
 from kura.types import Conversation
-import os
+from kura import Kura
+import asyncio
 from datetime import timedelta
 
 
@@ -122,9 +123,18 @@ asyncio.run(kura.cluster_conversations(conversations))
 kura.visualise_clusters()
 ```
 
-## LLM Extractors
+## Metadata
 
-> This is currently only supported during the summary step. We'll slowly roll out more support for more flexible LLM Extractors
+> Metadata is only extracted for now during the summarisation step. If there's demand, we can roll out support for this in subsequent steps.
+
+When analysing topic clusters, it's important to look at specific metadata filters within the clusters themselves. We support filtering by these specific metadata filters on the frontend UI that `kura` ships with.
+
+Metadata filters helps us identify specific trends and areas to hone in on. We currently support two main ways of providing metadata
+
+1. `LLM Extractors` : These are functions that run on the raw conversations using `instructor` and return a `ExtractedProperty` type object. Note that you can run any arbitrary code here, it does not have to be a LLM call!
+2. `Conversation Metadata` : This is metadata that comes with your own conversations, (Eg. the model used, toxic filters etc) which you can populate when creating the `Conversation` object.
+
+### LLM Extractors
 
 We also provide support for doing custom analysis and aggregation for metrics using language models or other methods using the `instructor` library. All you need to do is to return an `ExtractedProperty` type
 
@@ -142,12 +152,15 @@ class Language(BaseModel):
         pattern=r"^[a-z]{2}$",
     )
 
-
 async def language_extractor(
     conversation: Conversation,
-    sem: asyncio.Semaphore,
-    client: instructor.AsyncInstructor,
+    sems: dict[str, asyncio.Semaphore],
+    clients: dict[str, instructor.AsyncInstructor],
 ) -> ExtractedProperty:
+    # Get the default semaphore and client limits
+    sem = sems.get("default")
+    client = clients.get("default")
+
     async with sem:
         resp = await client.chat.completions.create(
             model="gemini-2.0-flash",
@@ -173,17 +186,253 @@ async def language_extractor(
 
 We can then use it in our clustering step with the following code snippets
 
+=== "Using Our Extractor"
+
+    ```python
+    from kura import Kura
+    from kura.types import Conversation, ExtractedProperty
+    from kura.summarisation import SummaryModel
+
+    summary_model = SummaryModel(extractors=[language_extractor])
+    kura = Kura(max_clusters=10, summarisation_model=summary_model)
+    conversations = Conversation.from_claude_conversation_dump("conversations.json")
+    asyncio.run(kura.cluster_conversations(conversations))
+    kura.visualise_clusters()
+    ```
+
+=== "Full Code"
+
+    ```python
+    import asyncio
+    import instructor
+    from pydantic import BaseModel, Field
+    from kura import Kura
+    from kura.types import Conversation, ExtractedProperty
+    from kura.summarisation import SummaryModel
+
+
+    class Language(BaseModel):
+        language_code: str = Field(
+            description="The language code of the conversation. (Eg. en, fr, es)",
+            pattern=r"^[a-z]{2}$",
+        )
+
+
+    async def language_extractor(
+        conversation: Conversation,
+        sems: dict[str, asyncio.Semaphore],
+        clients: dict[str, instructor.AsyncInstructor],
+    ) -> ExtractedProperty:
+        # Get the default semaphore and client limits
+        sem = sems.get("default")
+        client = clients.get("default")
+
+        async with sem:
+            resp = await client.chat.completions.create(
+                model="gemini-2.0-flash",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a helpful assistant that extracts the language of the following conversation.",
+                    },
+                    {
+                        "role": "user",
+                        "content": "\n".join(
+                            [f"{msg.role}: {msg.content}" for msg in conversation.messages]
+                        ),
+                    },
+                ],
+                response_model=Language,
+            )
+            return ExtractedProperty(
+                name="language_code",
+                value=resp.language_code,
+            )
+
+
+    summary_model = SummaryModel(extractors=[language_extractor])
+    kura = Kura(
+        max_clusters=10, summarisation_model=summary_model, override_checkpoint_dir=True
+    )
+    conversations = Conversation.from_claude_conversation_dump("conversations.json")[:100]
+    asyncio.run(kura.cluster_conversations(conversations))
+    kura.visualise_clusters()
+    ```
+
+Note that you can also run any arbitrary code within these extractors themselves, we just supply a Semaphore, a Client and the raw `Conversation` object for you to use.
+
+???+ tip
+
+    Make sure to use separate Semaphores for each provider/service you're using and an async compatible client. This will allow you to process your data quickly and effeciently
+
+Here's an example where we provide a new OpenAI Async Client to our Summary model with separate rate limits with a rate limit of 100 concurrent requests for the moderations endpoint
+
 ```python
+import asyncio
+import instructor
+from pydantic import BaseModel, Field
 from kura import Kura
 from kura.types import Conversation, ExtractedProperty
 from kura.summarisation import SummaryModel
+from openai import AsyncOpenAI
+from google.genai import Client
 
-summary_model = SummaryModel(extractors=[language_extractor])
-kura = Kura(max_clusters=10, summarisation_model=summary_model)
-conversations = Conversation.from_claude_conversation_dump("conversations.json")
+
+async def moderation_hook(
+    conversation: Conversation,
+    sems: dict[str, asyncio.Semaphore],
+    clients: dict[str, instructor.AsyncInstructor],
+) -> ExtractedProperty:
+    # Get the default semaphore and client limits
+    sem = sems.get("openai")
+    client = clients.get("openai")
+
+    async with sem:
+        assert isinstance(client, AsyncOpenAI)
+        resp = await client.moderations.create(
+            model="omni-moderation-latest",
+            input="\n".join([message.content for message in conversation.messages]),
+        )
+        return [
+            ExtractedProperty(
+                name="moderation_hate",
+                value=resp.results[0].categories.hate,
+            ),
+            ExtractedProperty(
+                name="moderation_hate_score",
+                value=resp.results[0].category_scores.hate,
+            ),
+        ] # You can return a list or just a normal ExtractedProperty object here
+```
+
+You can then use the extractor as seen below inside the summary model. This gives you the flexibility to define different rate limits and use clients (Eg. Amazon Bedrock, Claude, OpenAI ) depending on your current usage patterns.
+
+=== "Using Our Extractor"
+
+    ```python
+    summary_model = SummaryModel(
+        extractors=[moderation_hook],
+        clients={
+            "default": instructor.from_genai(Client(), use_async=True),
+            "openai": AsyncOpenAI(),
+        },
+        concurrent_requests={
+            "openai": 100,
+            "default": 50,
+        },
+    )
+    kura = Kura(
+        max_clusters=10, summarisation_model=summary_model, override_checkpoint_dir=True
+    )
+    conversations = Conversation.from_claude_conversation_dump("conversations.json")
+    asyncio.run(kura.cluster_conversations(conversations))
+    kura.visualise_clusters()
+    ```
+
+=== "Full Code"
+
+    ```python
+    import asyncio
+    import instructor
+    from pydantic import BaseModel, Field
+    from kura import Kura
+    from kura.types import Conversation, ExtractedProperty
+    from kura.summarisation import SummaryModel
+    from openai import AsyncOpenAI
+    from google.genai import Client
+
+
+    async def moderation_hook(
+        conversation: Conversation,
+        sems: dict[str, asyncio.Semaphore],
+        clients: dict[str, instructor.AsyncInstructor],
+    ) -> ExtractedProperty:
+        # Get the default semaphore and client limits
+        sem = sems.get("openai")
+        client = clients.get("openai")
+
+        async with sem:
+            assert isinstance(client, AsyncOpenAI)
+            resp = await client.moderations.create(
+                model="omni-moderation-latest",
+                input="\n".join([message.content for message in conversation.messages]),
+            )
+            return [
+                ExtractedProperty(
+                    name="moderation_hate",
+                    value=resp.results[0].categories.hate,
+                ),
+                ExtractedProperty(
+                    name="moderation_hate_score",
+                    value=resp.results[0].category_scores.hate,
+                ),
+            ]
+
+
+    summary_model = SummaryModel(
+        extractors=[moderation_hook],
+        clients={
+            "default": instructor.from_genai(Client(), use_async=True),
+            "openai": AsyncOpenAI(),
+        },
+        concurrent_requests={
+            "openai": 100,
+            "default": 50,
+        },
+    )
+    kura = Kura(
+        max_clusters=10, summarisation_model=summary_model, override_checkpoint_dir=True
+    )
+    conversations = Conversation.from_claude_conversation_dump("conversations.json")[:2]
+    asyncio.run(kura.cluster_conversations(conversations))
+    kura.visualise_clusters()
+    ```
+
+### Conversation Metadata
+
+Sometimes you might have metadata that you'll like to preserve which is specific to the conversation object (Eg. model used, user account details, org Id). In this case, you can just do so with the metadata field on the `Conversation` object.
+
+Here's a quick example using the `allenai/WildChat-nontoxic` dataset where we store the model used and the classification of the chat's toxicity and harmfulness.
+
+```python
+from kura.types import Conversation
+from kura import Kura
+import asyncio
+from datetime import timedelta
+
+
+def process_messages(row: dict):
+    return [
+        {
+            "role": message["role"],
+            "content": message["content"],
+            "created_at": row["timestamp"] + timedelta(minutes=5 * i),
+        }
+        for i, message in enumerate(row["conversation"])
+    ]
+
+
+conversations = Conversation.from_hf_dataset(
+    "allenai/WildChat-nontoxic",
+    split="train",
+    max_conversations=10,
+    chat_id_fn=lambda x: x["conversation_id"],
+    created_at_fn=lambda x: x["timestamp"],
+    messages_fn=process_messages,
+    metadata_fn=lambda x: {
+        "model": x["model"],
+        "toxic": x["toxic"],
+        "redacted": x["redacted"], # Using the metadata fn here
+    },
+)
+
+kura = Kura(override_checkpoint_dir=True)
 asyncio.run(kura.cluster_conversations(conversations))
+
 kura.visualise_clusters()
 ```
+
+You can also just set it on the `Conversation` object's `metadata` field.
 
 ## Technical Walkthrough
 

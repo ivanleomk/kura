@@ -1,9 +1,13 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal, Union, Callable
 import json
 import importlib
 from tqdm import tqdm
+
+metadata_dict = dict[
+    str, Union[str, int, float, bool, list[str], list[int], list[float]]
+]
 
 
 class Message(BaseModel):
@@ -16,6 +20,7 @@ class Conversation(BaseModel):
     chat_id: str
     created_at: datetime
     messages: list[Message]
+    metadata: metadata_dict
 
     @classmethod
     def generate_conversation_dump(
@@ -44,6 +49,7 @@ class Conversation(BaseModel):
         chat_id_fn=lambda x: x["chat_id"],
         created_at_fn=lambda x: x["created_at"],
         messages_fn=lambda x: x["messages"],
+        metadata_fn=lambda x: {},
     ) -> list["Conversation"]:
         if importlib.util.find_spec("datasets") is None:  # type: ignore
             raise ImportError(
@@ -52,7 +58,7 @@ class Conversation(BaseModel):
         from datasets import load_dataset  # type: ignore
 
         if max_conversations:
-            dataset = load_dataset(dataset_name, split=split, streaming=True).take(
+            dataset = load_dataset(dataset_name, split=split, streaming=True).take(  # type: ignore
                 max_conversations
             )
         else:
@@ -63,12 +69,17 @@ class Conversation(BaseModel):
                 chat_id=chat_id_fn(item),
                 created_at=created_at_fn(item),
                 messages=messages_fn(item),
+                metadata=metadata_fn(item),
             )
             for item in tqdm(dataset, desc="Loading Conversations")
         ]
 
     @classmethod
-    def from_claude_conversation_dump(cls, file_path: str) -> list["Conversation"]:
+    def from_claude_conversation_dump(
+        cls,
+        file_path: str,
+        metadata_fn: Callable[[dict], metadata_dict] = lambda x: {},
+    ) -> list["Conversation"]:
         with open(file_path, "r") as f:
             return [
                 Conversation(
@@ -100,6 +111,7 @@ class Conversation(BaseModel):
                             ),
                         )
                     ],
+                    metadata=metadata_fn(conversation),
                 )
                 for conversation in json.load(f)
             ]
