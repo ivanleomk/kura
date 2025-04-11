@@ -58,7 +58,7 @@ class Conversation(BaseModel):
         from datasets import load_dataset  # type: ignore
 
         if max_conversations:
-            dataset = load_dataset(dataset_name, split=split, streaming=True).take(
+            dataset = load_dataset(dataset_name, split=split, streaming=True).take(  # type: ignore
                 max_conversations
             )
         else:

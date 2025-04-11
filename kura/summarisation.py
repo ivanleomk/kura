@@ -100,7 +100,13 @@ class SummaryModel(BaseSummaryModel):
     ) -> ConversationSummary:
         client = self.clients.get("default")  # type: ignore
         sem = self.sems.get("default")  # type: ignore
-        async with sem:
+
+        assert client is not None and isinstance(client, instructor.AsyncInstructor), (
+            "You must set a default client which uses the Async Instructor API"
+        )
+        assert sem is not None, "You must set a default semaphore"
+
+        async with sem:  # type: ignore
             resp = await client.chat.completions.create(  # type: ignore
                 model=self.model,
                 messages=[
