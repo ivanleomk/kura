@@ -1,11 +1,12 @@
 from pydantic import BaseModel
 from typing import Union
+from kura.types.metadata import metadata_dict
 
 
 class ConversationSummary(BaseModel):
     chat_id: str
     summary: str
-    metadata: dict
+    metadata: metadata_dict
 
 
 class GeneratedSummary(BaseModel):

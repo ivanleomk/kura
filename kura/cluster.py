@@ -1,6 +1,7 @@
 from kura.base_classes import BaseClusterModel, BaseClusteringMethod, BaseEmbeddingModel
 from kura.embedding import OpenAIEmbeddingModel
 from kura.k_means import KmeansClusteringMethod
+from kura.metadata import combine_summary_metadata
 from kura.types import ConversationSummary, Cluster, GeneratedCluster
 from tqdm.asyncio import tqdm_asyncio
 import numpy as np
@@ -95,11 +96,16 @@ class ClusterModel(BaseClusterModel):
                 },
             )
 
+            combined_metadata = combine_summary_metadata(
+                [item.metadata for item in summaries]
+            )
+
             return Cluster(
                 name=resp.name,
                 description=resp.summary,
                 chat_ids=[item.chat_id for item in summaries],
                 parent_id=None,
+                metadata=combined_metadata,
             )
 
     async def cluster_summaries(

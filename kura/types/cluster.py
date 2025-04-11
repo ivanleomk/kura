@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field, computed_field
 import uuid
 from typing import Union
+from kura.types.metadata import cluster_metadata_dict
 
 
 class Cluster(BaseModel):
@@ -11,6 +12,7 @@ class Cluster(BaseModel):
     description: str
     chat_ids: list[str]
     parent_id: Union[str, None]
+    metadata: cluster_metadata_dict
 
     @computed_field
     def count(self) -> int:
