@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Literal, Union
+from typing import Literal, Union, Callable
 import json
 import importlib
 from tqdm import tqdm
@@ -75,7 +75,11 @@ class Conversation(BaseModel):
         ]
 
     @classmethod
-    def from_claude_conversation_dump(cls, file_path: str) -> list["Conversation"]:
+    def from_claude_conversation_dump(
+        cls,
+        file_path: str,
+        metadata_fn: Callable[[dict], metadata_dict] = lambda x: {},
+    ) -> list["Conversation"]:
         with open(file_path, "r") as f:
             return [
                 Conversation(
@@ -107,6 +111,7 @@ class Conversation(BaseModel):
                             ),
                         )
                     ],
+                    metadata=metadata_fn(conversation),
                 )
                 for conversation in json.load(f)
             ]
