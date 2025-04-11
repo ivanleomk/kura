@@ -1,127 +1,87 @@
-"use client";
-
+import { ClusterTreeNode } from "@/types/cluster";
 import { useState } from "react";
-import { ChevronRight, ChevronDown, FolderTree } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Cluster } from "@/types/analytics";
-import { cn } from "@/lib/utils";
+import { ChevronRight, ChevronDown } from "lucide-react";
 
-interface ClusterTreeProps {
-  clusters: Cluster[];
-  selectedClusterId: string | null;
-  levelMap: Map<number, Cluster[]>;
-  onSelectCluster: (cluster: Cluster) => void;
-}
+type Props = {
+  clusterTree: ClusterTreeNode;
+  indent?: number;
+  onSelectCluster?: (cluster: ClusterTreeNode) => void;
+};
 
-interface ClusterTreeItemProps {
-  cluster: Cluster;
-  allClusters: Cluster[];
-
-  level: number;
-  selectedClusterId: string | null;
-  onSelectCluster: (cluster: Cluster) => void;
-  levelMap: Map<number, Cluster[]>;
-}
-
-function ClusterTreeItem({
-  cluster,
-  allClusters,
-  level,
-  selectedClusterId,
-  levelMap,
-  onSelectCluster,
-}: ClusterTreeItemProps) {
+const ClusterTree = ({ clusterTree, indent = 0, onSelectCluster }: Props) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const childClusters = allClusters.filter((c) => c.parent_id === cluster.id);
+  const toggleExpand = () => setIsExpanded(!isExpanded);
 
-  const total_count =
-    levelMap.get(level)?.reduce((acc, curr) => acc + curr.count, 0) || 0;
-  const percentage = (cluster.count / total_count) * 100;
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toggleExpand();
+    if (onSelectCluster) {
+      onSelectCluster(clusterTree);
+    }
+  };
 
-  return (
-    <div className="text-md text-left">
-      <div
-        className={cn(
-          "flex items-center gap-2 py-2 px-3 hover:bg-accent/50 rounded-md cursor-pointer transition-colors duration-200 ",
-          selectedClusterId === cluster.id
-            ? "bg-accent text-accent-foreground"
-            : ""
-        )}
-        style={{ paddingLeft: `${level * 30 + 12}px` }}
-        onClick={() => onSelectCluster(cluster)}
-      >
-        {childClusters.length > 0 ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-4 w-4 p-0 hover:bg-transparent"
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-3 w-3" />
-            ) : (
-              <ChevronRight className="h-3 w-3" />
-            )}
-          </Button>
-        ) : (
-          <div className="w-4" />
-        )}
-        <div className="flex justify-between w-full">
-          <span className="flex-1 font-medium max-w-lg">{cluster.name}</span>
-          <span className="text-xs text-muted-foreground whitespace-nowrap">
-            {cluster.count.toLocaleString()} items | {percentage.toFixed(2)}%
-          </span>
-        </div>
-      </div>
-      {isExpanded &&
-        childClusters.map((child) => (
-          <ClusterTreeItem
-            key={child.id}
-            cluster={child}
-            allClusters={allClusters}
-            level={level + 1}
-            selectedClusterId={selectedClusterId}
-            levelMap={levelMap}
+  // Don't render the node itself if it's Root, just its children
+  if (clusterTree.name === "Root") {
+    return (
+      <div className="text-left">
+        {clusterTree.children?.map((child: ClusterTreeNode, index: number) => (
+          <ClusterTree
+            key={child.id || index}
+            clusterTree={child}
+            indent={0}
             onSelectCluster={onSelectCluster}
           />
         ))}
-    </div>
-  );
-}
-
-export function ClusterTree({
-  clusters,
-  selectedClusterId,
-  onSelectCluster,
-  levelMap,
-}: ClusterTreeProps) {
-  const rootClusters = levelMap.get(0) || [];
+      </div>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 p-4 border-b">
-        <FolderTree className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold">Cluster Hierarchy</h2>
-      </div>
-      <ScrollArea className="flex-1 p-2">
-        <div className="space-y-0.5">
-          {rootClusters.map((cluster) => (
-            <ClusterTreeItem
-              key={cluster.id}
-              cluster={cluster}
-              levelMap={levelMap}
-              allClusters={clusters}
-              level={0}
-              selectedClusterId={selectedClusterId}
-              onSelectCluster={onSelectCluster}
-            />
-          ))}
+    <div className="text-left">
+      <div
+        className="flex items-center hover:bg-slate-100 rounded py-2 cursor-pointer"
+        style={{ paddingLeft: `${indent}px` }}
+        onClick={handleClick}
+      >
+        {clusterTree.children && clusterTree.children.length > 0 ? (
+          <div className="flex-shrink-0 mr-1">
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-slate-500" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-slate-500" />
+            )}
+          </div>
+        ) : (
+          <div className="w-5" />
+        )}
+        <div className="font-medium text-wrap">
+          {clusterTree.name}
+          {clusterTree.count > 0 && (
+            <span className="ml-2 text-xs text-slate-500">
+              ({clusterTree.count})
+            </span>
+          )}
         </div>
-      </ScrollArea>
+      </div>
+
+      {isExpanded &&
+        clusterTree.children &&
+        clusterTree.children.length > 0 && (
+          <div className="pl-2 border-l border-slate-200 ml-2">
+            {clusterTree.children.map(
+              (child: ClusterTreeNode, index: number) => (
+                <ClusterTree
+                  key={child.id || index}
+                  clusterTree={child}
+                  indent={indent + 5}
+                  onSelectCluster={onSelectCluster}
+                />
+              )
+            )}
+          </div>
+        )}
     </div>
   );
-}
+};
+
+export default ClusterTree;
