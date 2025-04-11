@@ -12,19 +12,58 @@ interface MetadataSummaryProps {
 }
 
 function MetadataSummary({ aggregatedMetadata }: MetadataSummaryProps) {
+  const [aggregationMode, setAggregationMode] = useState<"individual" | "list">(
+    "individual"
+  );
+
   if (Object.keys(aggregatedMetadata).length === 0) return null;
 
   return (
     <div className="mt-3 border-t pt-2">
-      <h4 className="text-xs font-semibold mb-1">Metadata Summary</h4>
+      <div className="flex justify-between items-center mb-2">
+        <h4 className="text-xs font-semibold">Metadata Summary</h4>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-600">Aggregation:</span>
+          <button
+            onClick={() => setAggregationMode("individual")}
+            className={`text-xs px-2 py-0.5 rounded ${
+              aggregationMode === "individual"
+                ? "bg-blue-100 text-blue-800"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            Individual
+          </button>
+          <button
+            onClick={() => setAggregationMode("list")}
+            className={`text-xs px-2 py-0.5 rounded ${
+              aggregationMode === "list"
+                ? "bg-blue-100 text-blue-800"
+                : "bg-slate-100 text-slate-600"
+            }`}
+          >
+            List
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {Object.entries(aggregatedMetadata).map(([key, values]) => {
-          // Count occurrences of each unique value
+          // Count occurrences based on aggregation mode
           const valueCounts = values.reduce(
             (acc: Record<string, number>, val: any) => {
-              // Convert value to string for display
-              const valueStr = String(val);
-              acc[valueStr] = (acc[valueStr] || 0) + 1;
+              if (Array.isArray(val) && aggregationMode === "individual") {
+                // For individual mode, count each item in the array separately
+                val.forEach((item: any) => {
+                  const itemStr = String(item);
+                  acc[itemStr] = (acc[itemStr] || 0) + 1;
+                });
+              } else {
+                // For list mode or non-array values, count the whole value
+                const valueStr = Array.isArray(val)
+                  ? val.join(", ")
+                  : String(val);
+                acc[valueStr] = (acc[valueStr] || 0) + 1;
+              }
               return acc;
             },
             {}

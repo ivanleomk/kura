@@ -440,25 +440,29 @@ I've also recorded a technical deep dive into what Kura is and the ideas behind 
 
 <iframe width="560" height="315" src="https://www.youtube.com/embed/TPOP_jDiSVE?si=uvTond4LUwJGOn4F" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
-## CLI
+## Visualisations
 
-We provide a simple CLI tool that runs Kura with some default settings and a react frontend with associated visualisation. To boot it up, simply run the following command:
+We provide some simple visualisation tools that you can use to view the results of your Kura clustering.
+
+### React Application
+
+!!! note
+
+    Make sure to run Kura on your dataset of choice prior to this. The frontend application simply loads and visualises the clusters for you that we've saved in your desired checkpoint directory
+
+Simply run the command below and you'll be able to visualise the clusters that we've generated
 
 ```bash
 kura
-```
 
-This will in turn start up a local FastAPI server that you can interact with to upload your data and visualise the clusters. It roughly takes ~1 min for ~1000 conversations with a semaphore of around 50 requests at any given time. If you have higher concurrency, you can increase the semaphore to speed up the process.
+Access website at (http://localhost:8000)
 
-```bash
-> kura
-INFO:     Started server process [41539]
+INFO:     Started server process [30548]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:49496 - "GET / HTTP/1.1" 200 OK
 ```
-
-**You can combine multiple different conversation files into a single cluster by uploading them all at once.**. We also provide options to modify parameters such as the maximum number of clusters and whether you'd like to rerun the clustering process out of the box.
 
 <!--
 
