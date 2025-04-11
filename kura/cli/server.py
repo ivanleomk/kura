@@ -12,6 +12,9 @@ from kura.cli.visualisation import (
     generate_new_chats_per_week_data,
 )
 import json
+import os
+
+from kura.types.summarisation import ConversationSummary
 
 
 api = FastAPI()
@@ -29,44 +32,6 @@ api.add_middleware(
 web_dir = Path(__file__).parent.parent / "static" / "dist"
 if not web_dir.exists():
     raise FileNotFoundError(f"Static files directory not found: {web_dir}")
-
-
-class ConversationData(BaseModel):
-    data: list[Conversation]
-    max_clusters: Optional[int]
-    disable_checkpoints: bool
-
-
-@api.post("/api/analyse")
-async def analyse_conversations(conversation_data: ConversationData):
-    print(conversation_data.disable_checkpoints)
-    # Load clusters from checkpoint file if it exists
-    clusters_file = Path("./checkpoints") / "dimensionality.jsonl"
-    if not clusters_file.exists() or conversation_data.disable_checkpoints:
-        kura = Kura(
-            checkpoint_dir=str(clusters_file.parent),
-            max_clusters=conversation_data.max_clusters
-            if conversation_data.max_clusters
-            else 10,
-            disable_checkpoints=conversation_data.disable_checkpoints,
-        )
-        clusters = await kura.cluster_conversations(conversation_data.data)
-    else:
-        with open(clusters_file) as f:
-            clusters_data = []
-            for line in f:
-                clusters_data.append(line)
-            clusters = [
-                ProjectedCluster(**json.loads(cluster)) for cluster in clusters_data
-            ]
-
-    return {
-        "cumulative_words": generate_cumulative_chart_data(conversation_data.data),
-        "messages_per_chat": generate_messages_per_chat_data(conversation_data.data),
-        "messages_per_week": generate_messages_per_week_data(conversation_data.data),
-        "new_chats_per_week": generate_new_chats_per_week_data(conversation_data.data),
-        "clusters": clusters,
-    }
 
 
 # Serve static files from web/dist at the root

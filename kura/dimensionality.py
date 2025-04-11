@@ -53,7 +53,9 @@ class HDBUMAP(BaseDimensionalityReduction):
                 parent_id=cluster.parent_id,
                 x_coord=float(reduced_embeddings[i][0]),  # pyright: ignore
                 y_coord=float(reduced_embeddings[i][1]),  # pyright: ignore
-                level=0 if cluster.parent_id is None else 1,
+                level=0
+                if cluster.parent_id is None
+                else 1,  # TODO: Fix this, should reflect the level of the cluster
             )
             res.append(projected)
 

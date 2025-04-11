@@ -16,10 +16,10 @@ def start_app(
 ):
     """Start the FastAPI server"""
     os.environ["KURA_CHECKPOINT_DIR"] = dir
-    uvicorn.run(api, host="0.0.0.0", port=8000)
     print(
         "\n[bold green]🚀 Access website at[/bold green] [bold blue][http://localhost:8000](http://localhost:8000)[/bold blue]\n"
     )
+    uvicorn.run(api, host="0.0.0.0", port=8000)
 
 
 if __name__ == "__main__":
