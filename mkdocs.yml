@@ -1,6 +1,6 @@
 site_name: Kura
 site_url: https://usekura.xyz
-site_description: an example blog set up following the blog tutorials
+site_description: A tool for analysing and visualising chat data
 
 extra:
   analytics:
@@ -14,6 +14,15 @@ theme:
     - content.code.annotate
     - content.code.copy
     - content.tabs.link
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+
+nav:
+  - Home: index.md
+  - API Reference: api/index.md
+  - Blog: 
+    - blog/index.md
 
 plugins:
   - blog
@@ -25,6 +34,18 @@ plugins:
         - categories
         - tags
       use_git: false
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [../kura]
+          options:
+            docstring_style: google
+            show_root_heading: true
+            show_if_no_docstring: true
+            show_signature_annotations: true
+            members_order: source
 
 markdown_extensions:
   - pymdownx.highlight:
@@ -38,7 +59,6 @@ markdown_extensions:
   - md_in_html
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tabbed:
