@@ -48,6 +48,7 @@ kura.visualise_clusters()
 ```
 
 This will:
+
 1. Initialize Kura with default models
 2. Load a sample dataset of synthetic conversations
 3. Run the complete analysis pipeline
@@ -58,8 +59,14 @@ This will:
 For a more interactive experience, Kura includes a web interface:
 
 ```bash
-# After running the clustering process
-kura start-app
+~/D/c/kura (improve-documentation) [1]> kura
+
+🚀 Access website at (http://localhost:8000)
+
+INFO:     Started server process [14465]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
 ```
 
 Access the web interface at http://localhost:8000 to explore:
