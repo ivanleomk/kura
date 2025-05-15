@@ -45,7 +45,6 @@ nav:
   - API Reference: api/index.md
   - Blog: 
     - blog/index.md
-  - Troubleshooting: troubleshooting.md
 
 plugins:
   - blog

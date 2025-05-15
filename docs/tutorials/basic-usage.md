@@ -48,15 +48,10 @@ print(f"Loaded {len(conversations)} conversations")
 Let's look at a sample conversation to understand its structure:
 
 ```python
-# Look at the first conversation
-sample_conversation = conversations[0]
-
-print(f"Conversation ID: {sample_conversation.id}")
-print(f"Created at: {sample_conversation.created_at}")
-print(f"Number of messages: {len(sample_conversation.messages)}")
-print("\nSample messages:")
-for i, msg in enumerate(sample_conversation.messages[:3]):  # Show first 3 messages
-    print(f"{msg.role}: {msg.content[:100]}..." if len(msg.content) > 100 else f"{msg.role}: {msg.content}")
+# Examine first conversation
+sample = conversations[0]
+print(f"ID: {sample.id}, Messages: {len(sample.messages)}")
+print(f"First message: {sample.messages[0].role}: {sample.messages[0].content[:50]}...")
 ```
 
 ## Step 4: Run the Clustering Pipeline

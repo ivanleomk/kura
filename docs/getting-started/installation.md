@@ -12,38 +12,53 @@ Kura has the following requirements:
 
 ## Installation Methods
 
-### Using pip
+=== "Using uv (Recommended)"
 
-The simplest way to install Kura is using pip:
+    ```bash
+    # Install using uv for better performance
+    uv pip install kura
+    ```
 
-```bash
-pip install kura
-```
+=== "Using pip"
 
-### Using uv (Recommended)
-
-For faster installation, we recommend using the uv package manager:
-
-```bash
-uv pip install kura
-```
+    ```bash
+    # Install using standard pip
+    pip install kura
+    ```
 
 ### Development Installation
 
 If you want to contribute to Kura or modify the source code, install it in development mode:
 
-```bash
-# Clone the repository
-git clone https://github.com/567-labs/kura.git
-cd kura
+=== "Using uv (Recommended)"
 
-# Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+    ```bash
+    # Clone the repository
+    git clone https://github.com/567-labs/kura.git
+    cd kura
+    
+    # Create and activate a virtual environment
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    
+    # Install in development mode with dev dependencies
+    uv pip install -e ".[dev]"
+    ```
 
-# Install in development mode with dev dependencies
-pip install -e ".[dev]"
-```
+=== "Using pip"
+
+    ```bash
+    # Clone the repository
+    git clone https://github.com/567-labs/kura.git
+    cd kura
+    
+    # Create and activate a virtual environment
+    python -m venv venv
+    source venv/bin/activate  # On Windows: venv\Scripts\activate
+    
+    # Install in development mode with dev dependencies
+    pip install -e ".[dev]"
+    ```
 
 ## Setting up API Keys
 
@@ -64,23 +79,35 @@ set GOOGLE_API_KEY=your_api_key_here
 
 Kura supports additional features with optional dependencies:
 
-```bash
-# For documentation development
-pip install -e ".[docs]"
+=== "Using uv (Recommended)"
 
-# For running tests
-pip install -e ".[dev]"
-```
+    ```bash
+    # For documentation development
+    uv pip install -e ".[docs]"
+    
+    # For running tests
+    uv pip install -e ".[dev]"
+    ```
+
+=== "Using pip"
+
+    ```bash
+    # For documentation development
+    pip install -e ".[docs]"
+    
+    # For running tests
+    pip install -e ".[dev]"
+    ```
 
 ## Verifying Your Installation
 
 To verify that Kura is installed correctly, run:
 
 ```bash
-python -c "from kura import Kura; print(f'Kura version: {Kura.__version__}')"
+python -c "from kura import Kura; print('Kura installed successfully')"
 ```
 
-You should see the current version of Kura printed to the console.
+You should see a confirmation message with no errors.
 
 ## Next Steps
 

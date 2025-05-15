@@ -63,30 +63,22 @@ If your dataset doesn't match Kura's expected format, you can provide mapping fu
 from kura.types import Conversation
 from datetime import timedelta
 
-# Define mapping functions
-def process_messages(row: dict):
-    return [
-        {
-            "role": message["role"],
-            "content": message["content"],
-            "created_at": row["timestamp"] + timedelta(minutes=5 * i),
-        }
-        for i, message in enumerate(row["conversation"])
-    ]
-
 # Load with custom mapping
 conversations = Conversation.from_hf_dataset(
     "allenai/WildChat-nontoxic",
     split="train",
-    max_conversations=2000,
+    # Custom mapping functions
     chat_id_fn=lambda x: x["conversation_id"],
     created_at_fn=lambda x: x["timestamp"],
-    messages_fn=process_messages,
-    metadata_fn=lambda x: {
-        "model": x["model"],
-        "toxic": x["toxic"],
-        "redacted": x["redacted"],
-    },
+    messages_fn=lambda row: [
+        {
+            "role": msg["role"],
+            "content": msg["content"],
+            "created_at": row["timestamp"] + timedelta(minutes=5 * i),
+        }
+        for i, msg in enumerate(row["conversation"])
+    ],
+    metadata_fn=lambda x: {"model": x["model"], "toxic": x["toxic"]},
 )
 ```
 
@@ -178,23 +170,16 @@ programming_conversations = [
 
 For large datasets, consider:
 
-1. **Processing in batches**: Split your dataset into manageable chunks
+1. **Processing in batches**: Split your dataset into smaller chunks
 2. **Using checkpoints**: Enable checkpointing to resume processing
 3. **Sampling**: Start with a representative sample to tune parameters
 
 ```python
-# Process a large dataset in batches
+# Process in batches of 1000 conversations
 batch_size = 1000
 for i in range(0, len(all_conversations), batch_size):
-    batch = all_conversations[i:i+batch_size]
-    
-    # Use separate checkpoint directories for each batch
-    kura = Kura(
-        checkpoint_dir=f"./checkpoints_batch_{i//batch_size}",
-        override_checkpoint_dir=True
-    )
-    
-    asyncio.run(kura.cluster_conversations(batch))
+    kura = Kura(checkpoint_dir=f"./checkpoints_batch_{i//batch_size}")
+    asyncio.run(kura.cluster_conversations(all_conversations[i:i+batch_size]))
 ```
 
 ## Next Steps
