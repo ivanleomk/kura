@@ -1,4 +1,4 @@
-# Index
+# Kura Documentation
 
 ## What is Kura?
 
