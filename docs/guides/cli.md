@@ -15,11 +15,12 @@ Currently, Kura's CLI offers the following command:
 To start the web server with default settings:
 
 ```bash
-kura start-app
+kura
 ```
 
 This will:
-- Load data from the default checkpoint directory (`./checkpoints`)
+
+- Provide kura with a checkpoint to read the data from (`./checkpoints`)
 - Start a web server at http://localhost:8000
 - Serve the visualization interface
 
@@ -28,17 +29,18 @@ This will:
 You can specify a custom checkpoint directory:
 
 ```bash
-kura start-app --dir ./my_checkpoints
+kura --dir ./my_checkpoints
 ```
 
 This allows you to:
+
 - Maintain multiple analysis sessions in different directories
 - Share results by pointing to specific checkpoint directories
 - Analyze different datasets independently
 
 ## Understanding the Output
 
-When you run `kura start-app`, you'll see output similar to:
+When you run `kura`, you'll see output similar to:
 
 ```
 🚀 Access website at http://localhost:8000
