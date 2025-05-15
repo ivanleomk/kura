@@ -34,15 +34,17 @@ plugins:
         - categories
         - tags
       use_git: false
+  - search
   - mkdocstrings:
+      default_handler: python
       handlers:
         python:
+          paths: [../kura]
           options:
             docstring_style: google
             show_root_heading: true
             show_if_no_docstring: true
             show_signature_annotations: true
-            show_source: true
             members_order: source
 
 markdown_extensions:
@@ -57,7 +59,6 @@ markdown_extensions:
   - md_in_html
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.tabbed:
