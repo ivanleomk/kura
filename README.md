@@ -4,6 +4,29 @@
 
 Kura is an open-source tool for understanding and visualizing chat data, inspired by [Anthropic's CLIO](https://www.anthropic.com/research/clio). It helps you discover patterns, trends, and insights from user conversations by applying machine learning techniques to cluster similar interactions.
 
+## Why Analyze Conversation Data?
+
+As AI assistants and chatbots become increasingly central to product experiences, understanding how users interact with these systems at scale becomes a critical challenge. Manually reviewing thousands of conversations is impractical, yet crucial patterns and user needs often remain hidden in this data.
+
+Kura addresses this challenge by:
+
+- **Revealing user intent patterns** that may not be obvious from individual conversations
+- **Identifying common user needs** to prioritize feature development
+- **Discovering edge cases and failures** that require attention
+- **Tracking usage trends** over time as your product evolves
+- **Informing prompt engineering** by highlighting successful and problematic interactions
+
+By clustering similar conversations and providing intuitive visualizations, Kura transforms raw chat data into actionable insights without compromising user privacy.
+
+## Real-World Use Cases
+
+- **Product Teams**: Understand how users engage with your AI assistant to identify opportunities for improvement
+- **AI Research**: Analyze how different models respond to similar queries and detect systematic biases
+- **Customer Support**: Identify common support themes and optimize response strategies
+- **Content Creation**: Discover topics users are interested in to guide content development
+- **Education**: Analyze student interactions with educational AI to improve learning experiences
+- **UX Research**: Gain insights into user mental models and friction points
+
 ## Features
 
 - **Conversation Summarization**: Automatically generate concise task descriptions from conversations
@@ -137,6 +160,20 @@ kura start-app
 # Access at http://localhost:8000
 ```
 
+### UI Examples
+
+The web interface provides intuitive visualizations of your conversation data:
+
+<table>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/567-labs/kura/main/site/assets/images/cluster-map.png" alt="Cluster Map" width="100%"/><br/><em>Cluster Map: 2D visualization of conversation clusters</em></td>
+    <td><img src="https://raw.githubusercontent.com/567-labs/kura/main/site/assets/images/cluster-tree.png" alt="Cluster Tree" width="100%"/><br/><em>Cluster Tree: Hierarchical view of cluster relationships</em></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="https://raw.githubusercontent.com/567-labs/kura/main/site/assets/images/cluster-details.png" alt="Cluster Details" width="100%"/><br/><em>Cluster Details: In-depth information about selected clusters</em></td>
+  </tr>
+</table>
+
 ## Working with Metadata
 
 ### LLM Extractors
@@ -236,6 +273,28 @@ pip install -e ".[docs]"
 mkdocs serve
 # Access at http://localhost:8000
 ```
+
+## Comparison with Similar Tools
+
+| Feature | Kura | Traditional Analytics | Manual Review | Generic Clustering |
+|---------|------|----------------------|--------------|-------------------|
+| Semantic Understanding | ✅ Uses LLMs for deep understanding | ❌ Limited to keywords | ✅ Human understanding | ⚠️ Basic similarity only |
+| Scalability | ✅ Handles thousands of conversations | ✅ Highly scalable | ❌ Time intensive | ✅ Works at scale |
+| Visualization | ✅ Interactive UI | ⚠️ Basic charts | ❌ Manual effort | ⚠️ Generic plots |
+| Hierarchy Discovery | ✅ Meta-clustering feature | ❌ Flat categories | ⚠️ Subjective grouping | ❌ Typically flat |
+| Extensibility | ✅ Custom models and extractors | ⚠️ Limited customization | ✅ Flexible but manual | ⚠️ Some algorithms |
+| Privacy | ✅ Self-hosted option | ⚠️ Often requires data sharing | ✅ Can be private | ✅ Can be private |
+
+## Future Roadmap
+
+Kura is actively evolving with plans to add:
+
+- **Enhanced Topic Modeling**: More sophisticated detection of themes across conversations
+- **Temporal Analysis**: Tracking how conversation patterns evolve over time
+- **Advanced Visualizations**: Additional visual representations of conversation data
+- **Data Connectors**: More integrations with popular conversation data sources
+- **Multi-modal Support**: Analysis of conversations that include images and other media
+- **Export Capabilities**: Enhanced formats for sharing and presenting findings
 
 ## Development
 
