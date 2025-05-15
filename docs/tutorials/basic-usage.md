@@ -36,7 +36,7 @@ For this tutorial, we'll use a sample dataset from Hugging Face:
 ```python
 # Load synthetic conversations from Hugging Face
 conversations = Conversation.from_hf_dataset(
-    "ivanleomk/synthetic-gemini-conversations", 
+    "ivanleomk/synthetic-gemini-conversations",
     split="train"
 )
 
@@ -66,6 +66,7 @@ print(f"Generated {len(clustered_data)} projected clusters")
 ```
 
 This will:
+
 1. Summarize each conversation
 2. Create vector embeddings
 3. Cluster similar conversations
@@ -98,15 +99,16 @@ This will display something like:
 For a more interactive experience, let's start the web server:
 
 ```python
-# Use the CLI from Python (alternatively, run 'kura start-app' in terminal)
+# Use the CLI from Python (alternatively, run 'kura' in terminal)
 import os
 import subprocess
 
 os.environ["KURA_CHECKPOINT_DIR"] = "./tutorial_checkpoints"
-subprocess.run(["kura", "start-app"])
+subprocess.run(["kura"])
 ```
 
 Then, open your browser to http://localhost:8000 to explore:
+
 - The cluster map visualization
 - The hierarchical cluster tree
 - Details about each cluster
@@ -141,7 +143,7 @@ kura = Kura(
 
 # Load sample data
 conversations = Conversation.from_hf_dataset(
-    "ivanleomk/synthetic-gemini-conversations", 
+    "ivanleomk/synthetic-gemini-conversations",
     split="train"
 )
 print(f"Loaded {len(conversations)} conversations")
@@ -165,7 +167,7 @@ kura.visualise_clusters()
 # Start web server
 print("\nStarting web server. Press Ctrl+C to stop.")
 os.environ["KURA_CHECKPOINT_DIR"] = "./tutorial_checkpoints"
-subprocess.run(["kura", "start-app"])
+subprocess.run(["kura"])
 ```
 
 ## Next Steps

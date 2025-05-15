@@ -6,7 +6,7 @@ Kura provides a command-line interface (CLI) for easily starting the web visuali
 
 Currently, Kura's CLI offers the following command:
 
-- `kura start-app`: Start the web server to visualize clustering results
+- `kura`: Start the web server to visualize clustering results
 
 ## Command Usage
 
@@ -81,7 +81,7 @@ conversations = Conversation.from_hf_dataset("ivanleomk/synthetic-gemini-convers
 asyncio.run(kura.cluster_conversations(conversations))
 ```
 
-After running this code, you can use `kura start-app --dir ./my_checkpoints` to visualize the results.
+After running this code, you can use `kura --dir ./my_checkpoints` to visualize the results.
 
 ## Next Steps
 

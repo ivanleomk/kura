@@ -30,28 +30,28 @@ kura = Kura(
 
 ### Key Parameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `embedding_model` | `BaseEmbeddingModel` | `OpenAIEmbeddingModel()` | Model used to create embeddings from text |
-| `summarisation_model` | `BaseSummaryModel` | `SummaryModel()` | Model used to generate summaries from conversations |
-| `cluster_model` | `BaseClusterModel` | `ClusterModel()` | Model used for initial clustering |
-| `meta_cluster_model` | `BaseMetaClusterModel` | `MetaClusterModel()` | Model used for hierarchical clustering |
-| `dimensionality_reduction` | `BaseDimensionalityReduction` | `HDBUMAP()` | Method used to reduce dimensions for visualization |
-| `max_clusters` | `int` | `10` | Target number of top-level clusters |
-| `checkpoint_dir` | `str` | `"./checkpoints"` | Directory to store checkpoint files |
-| `override_checkpoint_dir` | `bool` | `False` | Whether to clear existing checkpoint directory |
-| `disable_checkpoints` | `bool` | `False` | Whether to disable checkpoint saving/loading |
+| Parameter                  | Type                          | Default                  | Description                                         |
+| -------------------------- | ----------------------------- | ------------------------ | --------------------------------------------------- |
+| `embedding_model`          | `BaseEmbeddingModel`          | `OpenAIEmbeddingModel()` | Model used to create embeddings from text           |
+| `summarisation_model`      | `BaseSummaryModel`            | `SummaryModel()`         | Model used to generate summaries from conversations |
+| `cluster_model`            | `BaseClusterModel`            | `ClusterModel()`         | Model used for initial clustering                   |
+| `meta_cluster_model`       | `BaseMetaClusterModel`        | `MetaClusterModel()`     | Model used for hierarchical clustering              |
+| `dimensionality_reduction` | `BaseDimensionalityReduction` | `HDBUMAP()`              | Method used to reduce dimensions for visualization  |
+| `max_clusters`             | `int`                         | `10`                     | Target number of top-level clusters                 |
+| `checkpoint_dir`           | `str`                         | `"./checkpoints"`        | Directory to store checkpoint files                 |
+| `override_checkpoint_dir`  | `bool`                        | `False`                  | Whether to clear existing checkpoint directory      |
+| `disable_checkpoints`      | `bool`                        | `False`                  | Whether to disable checkpoint saving/loading        |
 
 ## Checkpoint Files
 
 Kura saves several checkpoint files during processing:
 
-| Checkpoint File | Description |
-|-----------------|-------------|
-| `conversations.json` | Raw conversation data |
-| `summaries.jsonl` | Summarized conversations |
-| `clusters.jsonl` | Base cluster data |
-| `meta_clusters.jsonl` | Hierarchical cluster data |
+| Checkpoint File        | Description                      |
+| ---------------------- | -------------------------------- |
+| `conversations.json`   | Raw conversation data            |
+| `summaries.jsonl`      | Summarized conversations         |
+| `clusters.jsonl`       | Base cluster data                |
+| `meta_clusters.jsonl`  | Hierarchical cluster data        |
 | `dimensionality.jsonl` | Projected data for visualization |
 
 You can override the checkpoint filenames if needed:
@@ -138,7 +138,7 @@ When using the CLI, you can configure the checkpoint directory:
 
 ```bash
 # Start the web server with a custom checkpoint directory
-kura start-app --dir ./my_checkpoints
+kura --dir ./my_checkpoints
 ```
 
 ## Next Steps
