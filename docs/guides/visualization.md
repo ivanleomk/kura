@@ -44,10 +44,10 @@ Kura provides a comprehensive web interface for exploring results:
 
 ```bash
 # Start the web server
-kura start-app
+kura
 
-# Or with a custom checkpoint directory
-kura start-app --dir ./my_checkpoints
+# Or with a custom checkpoint directory ( this is where we'll load the data from )
+kura --dir ./my_checkpoints
 ```
 
 Access the web interface at http://localhost:8000.
@@ -96,6 +96,8 @@ View actual conversations within a selected cluster:
 - Conversation metadata
 - Navigation between conversations in the cluster
 
+![Conversation Details](../assets/images/conversation.png)
+
 ## Customizing Visualizations
 
 ### Dimensionality Reduction
@@ -104,12 +106,14 @@ The 2D mapping is created through dimensionality reduction. You can customize th
 
 ```python
 from kura.dimensionality import HDBUMAP
+from kura import Kura
 
 # Configure dimensionality reduction
 dimensionality_model = HDBUMAP(
-    n_neighbors=15,    # Controls local vs. global structure
-    min_dist=0.1,      # Controls spread of points
-    n_components=2     # Dimensions to reduce to (2 for visualization)
+    n_neighbors=15,  # Controls local vs. global structure
+    metric="cosine",  # Determines how we determine how close two points are
+    min_dist=0.1,  # Controls spread of points
+    n_components=2,  # Dimensions to reduce to (2 for visualization)
 )
 
 kura = Kura(dimensionality_reduction=dimensionality_model)
@@ -158,7 +162,7 @@ from pathlib import Path
 checkpoint_dir = Path("./checkpoints")
 with open(checkpoint_dir / "dimensionality.jsonl") as f:
     projected_clusters = [json.loads(line) for line in f]
-    
+
 # Export to CSV for external visualization
 import csv
 with open("cluster_coordinates.csv", "w", newline="") as f:
@@ -166,9 +170,9 @@ with open("cluster_coordinates.csv", "w", newline="") as f:
     writer.writerow(["id", "name", "x", "y", "count"])
     for cluster in projected_clusters:
         writer.writerow([
-            cluster["id"], 
-            cluster["name"], 
-            cluster["x"], 
+            cluster["id"],
+            cluster["name"],
+            cluster["x"],
             cluster["y"],
             cluster["count"]
         ])

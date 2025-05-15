@@ -4,17 +4,22 @@ from kura.embedding import OpenAIEmbeddingModel
 from umap import UMAP
 import numpy as np
 import asyncio
-import os
-from numpy.typing import NDArray
-from numpy import float64
 
 
 class HDBUMAP(BaseDimensionalityReduction):
     def __init__(
         self,
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
+        n_components: int = 2,
+        min_dist: float = 0.1,
+        metric: str = "cosine",
+        n_neighbours: int | None = None,
     ):
         self.embedding_model = embedding_model
+        self.n_components = n_components
+        self.min_dist = min_dist
+        self.metric = metric
+        self.n_neighbours = n_neighbours
 
     async def reduce_dimensionality(
         self, clusters: list[Cluster]
@@ -35,10 +40,12 @@ class HDBUMAP(BaseDimensionalityReduction):
 
         # Project to 2D using UMAP
         umap_reducer = UMAP(
-            n_components=2,
-            n_neighbors=min(15, len(embeddings) - 1),
-            min_dist=0,
-            metric="cosine",
+            n_components=self.n_components,
+            n_neighbors=self.n_neighbours
+            if self.n_neighbours
+            else min(15, len(embeddings) - 1),
+            min_dist=self.min_dist,
+            metric=self.metric,
         )
         reduced_embeddings = umap_reducer.fit_transform(embeddings)
 
