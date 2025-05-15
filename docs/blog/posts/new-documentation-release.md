@@ -25,11 +25,11 @@ Our documentation has been completely reorganized and expanded to provide a bett
 
 If you're new to Kura, we recommend starting with:
 
-1. [Installation Guide](/getting-started/installation/)
-2. [Quickstart Guide](/getting-started/quickstart/)
-3. [Core Concepts Overview](/core-concepts/overview/)
+1. [Installation Guide](../../getting-started/installation.md)
+2. [Quickstart Guide](../..//getting-started/quickstart.md)
+3. [Core Concepts Overview](../../core-concepts/overview.md)
 
-For those already familiar with Kura, check out the [User Guides](/guides/loading-data/) to learn about specific features and use cases.
+For those already familiar with Kura, check out the [User Guides](../../guides/loading-data.md) to learn about specific features and use cases.
 
 ## We Want Your Feedback!
 
@@ -44,7 +44,7 @@ Please share your thoughts by:
 
 - Opening an issue on [GitHub](https://github.com/567-labs/kura/issues/new?labels=documentation)
 - Starting a discussion in our [GitHub Discussions](https://github.com/567-labs/kura/discussions)
-- Reaching out on [Twitter](https://twitter.com/)
+- Reaching out to [Jason](https://twitter.com/jxnl) or [Ivan](https://x.com/ivanleomk)
 
 ## What's Next
 
