@@ -20,6 +20,28 @@ theme:
 
 nav:
   - Home: index.md
+  - Getting Started:
+    - Installation: getting-started/installation.md
+    - Quickstart: getting-started/quickstart.md
+    - Configuration: getting-started/configuration.md
+  - Core Concepts:
+    - Overview: core-concepts/overview.md
+    - Conversations: core-concepts/conversations.md
+    - Summarization: core-concepts/summarization.md
+    - Embedding: core-concepts/embedding.md
+    - Clustering: core-concepts/clustering.md
+    - Meta-Clustering: core-concepts/meta-clustering.md
+    - Dimensionality Reduction: core-concepts/dimensionality-reduction.md
+  - User Guide:
+    - Loading Data: guides/loading-data.md
+    - Visualizing Results: guides/visualization.md
+    - Working with Metadata: guides/metadata.md
+    - Customizing Models: guides/custom-models.md
+    - Using the CLI: guides/cli.md
+  - Tutorials:
+    - Basic Usage: tutorials/basic-usage.md
+    - Advanced Usage: tutorials/advanced-usage.md
+    - Custom Extractors: tutorials/custom-extractors.md
   - API Reference: api/index.md
   - Blog: 
     - blog/index.md

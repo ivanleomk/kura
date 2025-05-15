@@ -23,6 +23,22 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class Kura:
+    """Main class for the Kura conversation analysis pipeline.
+    
+    Kura is a tool for analyzing conversation data using a multi-step process of
+    summarization, embedding, clustering, meta-clustering, and visualization.
+    This class coordinates the entire pipeline and manages checkpointing.
+    
+    Attributes:
+        embedding_model: Model for converting text to vector embeddings
+        summarisation_model: Model for generating summaries from conversations
+        cluster_model: Model for initial clustering of summaries
+        meta_cluster_model: Model for creating hierarchical clusters
+        dimensionality_reduction: Model for projecting clusters to 2D space
+        max_clusters: Target number of top-level clusters
+        checkpoint_dir: Directory for saving intermediate results
+    """
+    
     def __init__(
         self,
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
@@ -40,8 +56,25 @@ class Kura:
         disable_checkpoints: bool = False,
         override_checkpoint_dir: bool = False,
     ):
+        """Initialize a new Kura instance with custom or default components.
+        
+        Args:
+            embedding_model: Model to convert text to vector embeddings (default: OpenAIEmbeddingModel)
+            summarisation_model: Model to generate summaries from conversations (default: SummaryModel)
+            cluster_model: Model for initial clustering (default: ClusterModel)
+            meta_cluster_model: Model for hierarchical clustering (default: MetaClusterModel)
+            dimensionality_reduction: Model for 2D projection (default: HDBUMAP)
+            max_clusters: Target number of top-level clusters (default: 10)
+            checkpoint_dir: Directory for saving intermediate results (default: "./checkpoints")
+            conversation_checkpoint_name: Filename for conversations checkpoint (default: "conversations.json")
+            summary_checkpoint_name: Filename for summaries checkpoint (default: "summaries.jsonl")
+            cluster_checkpoint_name: Filename for clusters checkpoint (default: "clusters.jsonl")
+            meta_cluster_checkpoint_name: Filename for meta-clusters checkpoint (default: "meta_clusters.jsonl")
+            dimensionality_checkpoint_name: Filename for dimensionality checkpoint (default: "dimensionality.jsonl")
+            disable_checkpoints: Whether to disable checkpoint loading/saving (default: False)
+            override_checkpoint_dir: Whether to clear existing checkpoint directory (default: False)
+        """
         # Define Models that we're using
-        self.embedding_model = embedding_model
         self.embedding_model = embedding_model
         self.summarisation_model = summarisation_model
         self.max_clusters = max_clusters
@@ -72,6 +105,15 @@ class Kura:
     def load_checkpoint(
         self, checkpoint_path: str, response_model: type[T]
     ) -> Union[list[T], None]:
+        """Load data from a checkpoint file if it exists.
+        
+        Args:
+            checkpoint_path: Path to the checkpoint file
+            response_model: Pydantic model class for deserializing the data
+            
+        Returns:
+            List of model instances if checkpoint exists, None otherwise
+        """
         if not self.disable_checkpoints:
             if os.path.exists(checkpoint_path):
                 print(
@@ -82,12 +124,23 @@ class Kura:
         return None
 
     def save_checkpoint(self, checkpoint_path: str, data: list[T]) -> None:
+        """Save data to a checkpoint file.
+        
+        Args:
+            checkpoint_path: Path to the checkpoint file
+            data: List of model instances to save
+        """
         if not self.disable_checkpoints:
             with open(checkpoint_path, "w") as f:
                 for item in data:
                     f.write(item.model_dump_json() + "\n")
 
     def setup_checkpoint_dir(self):
+        """Set up the checkpoint directory.
+        
+        Creates the checkpoint directory if it doesn't exist.
+        If override_checkpoint_dir is True, removes and recreates the directory.
+        """
         if self.disable_checkpoints:
             return
 
@@ -100,6 +153,17 @@ class Kura:
             os.makedirs(self.checkpoint_dir)
 
     async def reduce_clusters(self, clusters: list[Cluster]) -> list[Cluster]:
+        """Reduce clusters into a hierarchical structure.
+        
+        Iteratively combines similar clusters until the number of root clusters
+        is less than or equal to max_clusters.
+        
+        Args:
+            clusters: List of initial clusters
+            
+        Returns:
+            List of clusters with hierarchical structure
+        """
         checkpoint_items = self.load_checkpoint(
             self.meta_cluster_checkpoint_name, Cluster
         )
@@ -134,6 +198,17 @@ class Kura:
     async def summarise_conversations(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
+        """Generate summaries for a list of conversations.
+        
+        Uses the summarisation_model to generate summaries for each conversation.
+        Loads from checkpoint if available.
+        
+        Args:
+            conversations: List of conversations to summarize
+            
+        Returns:
+            List of conversation summaries
+        """
         checkpoint_items = self.load_checkpoint(
             self.summary_checkpoint_name, ConversationSummary
         )
@@ -144,7 +219,18 @@ class Kura:
         self.save_checkpoint(self.summary_checkpoint_name, summaries)
         return summaries
 
-    async def generate_base_clusters(self, summaries: list[ConversationSummary]):
+    async def generate_base_clusters(self, summaries: list[ConversationSummary]) -> list[Cluster]:
+        """Generate base clusters from summaries.
+        
+        Uses the cluster_model to group similar summaries into clusters.
+        Loads from checkpoint if available.
+        
+        Args:
+            summaries: List of conversation summaries
+            
+        Returns:
+            List of base clusters
+        """
         base_cluster_checkpoint_items = self.load_checkpoint(
             self.cluster_checkpoint_name, Cluster
         )
@@ -158,6 +244,17 @@ class Kura:
     async def reduce_dimensionality(
         self, clusters: list[Cluster]
     ) -> list[ProjectedCluster]:
+        """Reduce dimensions of clusters for visualization.
+        
+        Uses dimensionality_reduction to project clusters to 2D space.
+        Loads from checkpoint if available.
+        
+        Args:
+            clusters: List of clusters to project
+            
+        Returns:
+            List of projected clusters with 2D coordinates
+        """
         checkpoint_items = self.load_checkpoint(
             self.dimensionality_checkpoint_name, ProjectedCluster
         )
@@ -173,7 +270,23 @@ class Kura:
         )
         return dimensionality_reduced_clusters
 
-    async def cluster_conversations(self, conversations: list[Conversation]):
+    async def cluster_conversations(self, conversations: list[Conversation]) -> list[ProjectedCluster]:
+        """Run the full clustering pipeline on a list of conversations.
+        
+        This is the main method that orchestrates the entire Kura pipeline:
+        1. Set up checkpoints directory
+        2. Save raw conversations
+        3. Generate summaries
+        4. Create base clusters
+        5. Create hierarchical meta-clusters
+        6. Project clusters to 2D for visualization
+        
+        Args:
+            conversations: List of conversations to process
+            
+        Returns:
+            List of projected clusters with 2D coordinates
+        """
         self.setup_checkpoint_dir()
 
         # Configure the checkpoint directory
@@ -199,7 +312,21 @@ class Kura:
         is_last: bool = True,
         prefix: str = "",
     ):
-        # Current line prefix
+        """Build a text representation of the hierarchical cluster tree.
+        
+        This is a recursive helper method used by visualise_clusters().
+        
+        Args:
+            node: Current tree node
+            node_id_to_cluster: Dictionary mapping node IDs to nodes
+            level: Current depth in the tree (for indentation)
+            is_last: Whether this is the last child of its parent
+            prefix: Current line prefix for tree structure
+            
+        Returns:
+            String representation of the tree structure
+        """
+        # Current line prefix (used for tree visualization symbols)
         current_prefix = prefix
 
         # Add the appropriate connector based on whether this is the last child
@@ -214,13 +341,13 @@ class Kura:
             current_prefix + node.name + " (" + str(node.count) + " conversations)\n"
         )
 
-        # Calculate the prefix for children
+        # Calculate the prefix for children (continue vertical lines for non-last children)
         child_prefix = prefix
         if level > 0:
             if is_last:
-                child_prefix += "    "
+                child_prefix += "    "  # No vertical line needed for last child's children
             else:
-                child_prefix += "║   "
+                child_prefix += "║   "  # Continue vertical line for non-last child's children
 
         # Process children
         children = node.children
@@ -234,6 +361,20 @@ class Kura:
         return result
 
     def visualise_clusters(self):
+        """Print a hierarchical visualization of clusters to the terminal.
+        
+        This method loads clusters from the meta_cluster_checkpoint file,
+        builds a tree representation, and prints it to the console.
+        The visualization shows the hierarchical relationship between clusters
+        with indentation and tree structure symbols.
+        
+        Example output:
+        ╠══ Compare and improve Flutter and React state management (45 conversations)
+        ║   ╚══ Improve and compare Flutter and React state management (32 conversations)
+        ║       ╠══ Improve React TypeScript application (15 conversations)
+        ║       ╚══ Compare and select Flutter state management solutions (17 conversations)
+        ╠══ Optimize blog posts for SEO and improved user engagement (28 conversations)
+        """
         with open(self.meta_cluster_checkpoint_name) as f:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
