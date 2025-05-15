@@ -67,7 +67,7 @@ npm run lint
 ### Running the Application
 
 ```bash
-# Start the Kura web server
+# Start the Kura web server (implemented in kura/cli/cli.py and kura/cli/server.py)
 kura start-app
 
 # Start with a custom checkpoint directory
@@ -80,11 +80,11 @@ Kura is a tool for analyzing and visualizing chat data, built on the same ideas 
 
 ### Core Components
 
-1. **Summarisation Model**: Takes user conversations and summarizes them into task descriptions
-2. **Embedding Model**: Converts text into vector representations (embeddings)
-3. **Clustering Model**: Groups summaries into clusters based on embeddings
-4. **Meta Clustering Model**: Further groups clusters into a hierarchical structure
-5. **Dimensionality Reduction**: Reduces high-dimensional embeddings for visualization
+1. **Summarisation Model** (`kura/summarisation.py`): Takes user conversations and summarizes them into task descriptions
+2. **Embedding Model** (`kura/embedding.py`): Converts text into vector representations (embeddings)
+3. **Clustering Model** (`kura/cluster.py`): Groups summaries into clusters based on embeddings
+4. **Meta Clustering Model** (`kura/meta_cluster.py`): Further groups clusters into a hierarchical structure
+5. **Dimensionality Reduction** (`kura/dimensionality.py`): Reduces high-dimensional embeddings for visualization
 
 ### Data Flow
 
@@ -97,20 +97,22 @@ Kura is a tool for analyzing and visualizing chat data, built on the same ideas 
 
 ### Key Classes
 
-- `Kura`: Main class that orchestrates the entire pipeline
-- `BaseEmbeddingModel` / `OpenAIEmbeddingModel`: Handle text embedding
-- `BaseSummaryModel` / `SummaryModel`: Summarize conversations
-- `BaseClusterModel` / `ClusterModel`: Create initial clusters
-- `BaseMetaClusterModel` / `MetaClusterModel`: Reduce clusters into hierarchical groups
-- `BaseDimensionalityReduction` / `HDBUMAP`: Reduce dimensions for visualization
+- `Kura` (`kura/kura.py`): Main class that orchestrates the entire pipeline
+- `BaseEmbeddingModel` / `OpenAIEmbeddingModel` (`kura/embedding.py`): Handle text embedding
+- `BaseSummaryModel` / `SummaryModel` (`kura/summarisation.py`): Summarize conversations
+- `BaseClusterModel` / `ClusterModel` (`kura/cluster.py`): Create initial clusters
+- `BaseMetaClusterModel` / `MetaClusterModel` (`kura/meta_cluster.py`): Reduce clusters into hierarchical groups
+- `BaseDimensionalityReduction` / `HDBUMAP` (`kura/dimensionality.py`): Reduce dimensions for visualization
+- `Conversation` (`kura/types/conversation.py`): Core data model for user conversations
 
 ### UI Components
 
 The project includes a React/TypeScript frontend for visualizing the clusters, with components for:
-- Displaying cluster maps
-- Showing cluster details
-- Visualizing cluster hierarchies
-- Handling conversation uploads and processing
+- Displaying cluster maps (`ui/src/components/cluster-map.tsx`)
+- Showing cluster details (`ui/src/components/cluster-details.tsx`)
+- Visualizing cluster hierarchies (`ui/src/components/cluster-tree.tsx`)
+- Handling conversation uploads (`ui/src/components/upload-form.tsx`)
+- Displaying individual conversations (`ui/src/components/conversation-dialog.tsx`)
 
 ### Extensibility
 
@@ -125,7 +127,7 @@ The system is designed to be modular, allowing custom implementations of:
 Kura supports two types of metadata for enriching conversation analysis:
 
 ### 1. LLM Extractors
-Custom metadata can be extracted from conversations using LLM-powered extractors. These functions run on raw conversations to identify properties like:
+Custom metadata can be extracted from conversations using LLM-powered extractors (implemented in `kura/summarisation.py`). These functions run on raw conversations to identify properties like:
 - Language detection
 - Sentiment analysis
 - Topic identification
@@ -165,7 +167,7 @@ async def language_extractor(
 ```
 
 ### 2. Conversation Metadata
-Metadata can be directly attached to conversation objects when loading data:
+Metadata can be directly attached to conversation objects when loading data (implemented in `kura/types/conversation.py`):
 ```python
 conversations = Conversation.from_hf_dataset(
     "allenai/WildChat-nontoxic",
@@ -179,7 +181,7 @@ conversations = Conversation.from_hf_dataset(
 
 ## Loading Data
 
-Kura supports multiple data sources:
+Kura supports multiple data sources (implementations in `kura/types/conversation.py`):
 
 ### Claude Conversation History
 ```python
@@ -221,7 +223,7 @@ conversations = [
 
 ## Checkpoints
 
-Kura uses checkpoint files to save state between runs:
+Kura uses checkpoint files to save state between runs (checkpoint handling in `kura/kura.py`):
 - `conversations.json`: Raw conversation data
 - `summaries.jsonl`: Summarized conversations
 - `clusters.jsonl`: Base cluster data
@@ -236,11 +238,13 @@ Kura includes visualization tools:
 
 ### CLI Visualization
 ```python
+# Tree visualization implemented in kura/kura.py
 kura.visualise_clusters()
 ```
 
 ### Web Server
 ```bash
+# Web server implemented in kura/cli/server.py
 kura start-app
 # Access at http://localhost:8000
 ```
