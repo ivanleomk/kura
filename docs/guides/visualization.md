@@ -110,7 +110,7 @@ from kura import Kura
 
 # Configure dimensionality reduction
 dimensionality_model = HDBUMAP(
-    n_neighbours=15,  # Controls local vs. global structure
+    n_neighbors=15,  # Controls local vs. global structure
     metric="cosine",  # Determines how we determine how close two points are
     min_dist=0.1,  # Controls spread of points
     n_components=2,  # Dimensions to reduce to (2 for visualization)

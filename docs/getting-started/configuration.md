@@ -124,7 +124,7 @@ from kura.dimensionality import HDBUMAP
 
 # Configure UMAP for dimensionality reduction
 dimensionality_model = HDBUMAP(
-    n_neighbours=15,
+    n_neighbors=15,
     min_dist=0.1,
     n_components=2
 )

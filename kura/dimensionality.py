@@ -14,13 +14,13 @@ class HDBUMAP(BaseDimensionalityReduction):
         n_components: int = 2,
         min_dist: float = 0.1,
         metric: str = "cosine",
-        n_neighbours: Union[int, None] = None,
+        n_neighbors: Union[int, None] = None,
     ):
         self.embedding_model = embedding_model
         self.n_components = n_components
         self.min_dist = min_dist
         self.metric = metric
-        self.n_neighbours = n_neighbours
+        self.n_neighbors = n_neighbors
 
     async def reduce_dimensionality(
         self, clusters: list[Cluster]
@@ -42,8 +42,8 @@ class HDBUMAP(BaseDimensionalityReduction):
         # Project to 2D using UMAP
         umap_reducer = UMAP(
             n_components=self.n_components,
-            n_neighbours=self.n_neighbours
-            if self.n_neighbours
+            n_neighbors=self.n_neighbors
+            if self.n_neighbors
             else min(15, len(embeddings) - 1),
             min_dist=self.min_dist,
             metric=self.metric,
