@@ -26,7 +26,7 @@ Our documentation has been completely reorganized and expanded to provide a bett
 If you're new to Kura, we recommend starting with:
 
 1. [Installation Guide](../../getting-started/installation.md)
-2. [Quickstart Guide](../..//getting-started/quickstart.md)
+2. [Quickstart Guide](../../getting-started/quickstart.md)
 3. [Core Concepts Overview](../../core-concepts/overview.md)
 
 For those already familiar with Kura, check out the [User Guides](../../guides/loading-data.md) to learn about specific features and use cases.
