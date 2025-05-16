@@ -98,6 +98,8 @@ conversations = Conversation.from_hf_dataset(
 )
 ```
 
+> 💡 **Note:** This example uses a dataset of ~190 synthetic programming conversations that's structured for Kura. It contains technical discussions about web development frameworks, coding patterns, and software engineering that form natural clusters.
+
 ### Custom Conversations
 
 ```python

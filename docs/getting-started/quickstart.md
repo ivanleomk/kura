@@ -35,6 +35,8 @@ import asyncio
 kura = Kura()
 
 # Load sample data from Hugging Face
+# This dataset contains ~190 synthetic programming conversations
+# that demonstrate clustering patterns across technical topics
 conversations = Conversation.from_hf_dataset(
     "ivanleomk/synthetic-gemini-conversations", 
     split="train"

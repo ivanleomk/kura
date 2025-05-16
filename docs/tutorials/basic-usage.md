@@ -43,6 +43,8 @@ conversations = Conversation.from_hf_dataset(
 print(f"Loaded {len(conversations)} conversations")
 ```
 
+> **About the dataset**: `ivanleomk/synthetic-gemini-conversations` contains approximately 190 synthetic conversations focused on technical topics like programming, web development (Django, React, Spring Boot), and software engineering challenges. This dataset is structured in a format compatible with Kura's expected schema, containing conversation IDs, timestamps, and properly formatted messages with user/assistant roles. It serves as an excellent example for demonstrating Kura's clustering capabilities.
+
 ## Step 3: Examine the Data
 
 Let's look at a sample conversation to understand its structure:
