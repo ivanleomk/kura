@@ -55,6 +55,22 @@ kura = Kura()
 asyncio.run(kura.cluster_conversations(conversations))
 ```
 
+#### Example Dataset: ivanleomk/synthetic-gemini-conversations
+
+This example dataset is used throughout Kura's documentation and contains:
+
+- **Size**: Approximately 190 conversations
+- **Content**: Synthetic technical support and programming discussions
+- **Topics**: Web development (Django, React, Spring), software engineering, database design
+- **Structure**: Pre-formatted with conversation IDs, timestamps, and message roles compatible with Kura
+- **Purpose**: Demonstrates clustering patterns across related programming topics
+
+This dataset is ideal for learning how to use Kura because it:
+1. Contains enough conversations to form meaningful clusters
+2. Has distinct but related topics for hierarchical clustering 
+3. Matches Kura's expected data schema
+4. Is small enough to process quickly
+
 ### Custom Mapping Functions
 
 If your dataset doesn't match Kura's expected format, you can provide mapping functions:
