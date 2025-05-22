@@ -1,9 +1,61 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
 .venv/
+venv/
+ENV/
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.coverage.*
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
+
+# MkDocs
+site/
+.cache/
+.bash_history
+.python_history
 
 # Node.js
 node_modules/
+
 # macOS
 .DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Environment variables
+.env
+.envrc
