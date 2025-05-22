@@ -10,16 +10,13 @@ from typing import Callable
 import asyncio
 
 
+
+
 class SummaryModel(BaseSummaryModel):
     def __init__(
         self,
-        concurrent_requests: dict[str, int] = {
-            "default": 50,
-        },
-        clients: dict[str, Any] = {
-            "default": instructor.from_genai(Client(), use_async=True)
-        },
-        model: str = "gemini-2.0-flash",
+        model: str = "gemini/gemini-2.0-flash",
+        concurrent_requests: int = 50,
         extractors: list[
             Callable[
                 [Conversation, dict[str, Semaphore], dict[str, Any]],
@@ -28,10 +25,10 @@ class SummaryModel(BaseSummaryModel):
         ] = [],
     ):
         self.sems = None
-        self.model = model
         self.extractors = extractors
         self.concurrent_requests = concurrent_requests
-        self.clients = clients
+        self.model = model
+        self.semaphore = asyncio.Semaphore(concurrent_requests)
 
     async def summarise(
         self, conversations: list[Conversation]
@@ -65,11 +62,8 @@ class SummaryModel(BaseSummaryModel):
     async def apply_hooks(
         self, conversation: Conversation
     ) -> dict[str, Union[str, int, float, bool, list[str], list[int], list[float]]]:
-        assert self.sems is not None, (
-            f"Semaphore is not set for {self.__class__.__name__}"
-        )
         coros = [
-            extractor(conversation, self.sems, self.clients)
+            extractor(conversation, self.semaphore)
             for extractor in self.extractors
         ]
         metadata_extracted = await gather(*coros)  # pyright: ignore
@@ -98,17 +92,9 @@ class SummaryModel(BaseSummaryModel):
     async def summarise_conversation(
         self, conversation: Conversation
     ) -> ConversationSummary:
-        client = self.clients.get("default")  # type: ignore
-        sem = self.sems.get("default")  # type: ignore
-
-        assert client is not None and isinstance(client, instructor.AsyncInstructor), (
-            "You must set a default client which uses the Async Instructor API"
-        )
-        assert sem is not None, "You must set a default semaphore"
-
-        async with sem:  # type: ignore
+        client = instructor.from_provider(self.model, use_async=True)
+        async with self.semaphore:  # type: ignore
             resp = await client.chat.completions.create(  # type: ignore
-                model=self.model,
                 messages=[
                     {
                         "role": "system",
