@@ -6,7 +6,6 @@ from tqdm.asyncio import tqdm_asyncio
 import numpy as np
 from asyncio import Semaphore
 import instructor
-from google.genai import Client
 
 
 class ClusterModel(BaseClusterModel):

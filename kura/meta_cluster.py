@@ -8,7 +8,6 @@ from kura.types.cluster import Cluster, GeneratedCluster
 from kura.embedding import OpenAIEmbeddingModel
 from kura.k_means import KmeansClusteringMethod
 import instructor
-from google.genai import Client
 from tqdm.asyncio import tqdm_asyncio
 from asyncio import Semaphore
 from pydantic import BaseModel, field_validator, ValidationInfo
@@ -63,13 +62,12 @@ class MetaClusterModel(BaseMetaClusterModel):
     def __init__(
         self,
         max_concurrent_requests: int = 50,
-        client=instructor.from_genai(Client(), use_async=True),
-        model="gemini-2.0-flash",
+        model="gemini/gemini-2.0-flash",
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         clustering_model: BaseClusteringMethod = KmeansClusteringMethod(12),
     ):
         self.max_concurrent_requests = max_concurrent_requests
-        self.client = client
+        self.client = instructor.from_provider(model, use_async=True)
         self.embedding_model = embedding_model
         self.clustering_model = clustering_model
         self.model = model
@@ -79,7 +77,6 @@ class MetaClusterModel(BaseMetaClusterModel):
     ) -> list[str]:
         async with sem:
             resp = await self.client.chat.completions.create(
-                model=self.model,
                 messages=[
                     {
                         "role": "user",
@@ -122,7 +119,6 @@ class MetaClusterModel(BaseMetaClusterModel):
     async def label_cluster(self, cluster: Cluster, candidate_clusters: list[str]):
         async with self.sem:
             resp = await self.client.chat.completions.create(
-                model=self.model,
                 messages=[
                     {
                         "role": "user",
