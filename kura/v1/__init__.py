@@ -12,17 +12,8 @@ from .kura import (
     reduce_clusters,
     reduce_dimensionality,
     
-    # Convenience functions
-    run_full_pipeline,
-    visualize_clusters,
-    
-    # Configuration and models
-    PipelineConfig,
-    PipelineModels,
+    # Checkpoint management
     CheckpointManager,
-    
-    # Backward compatibility
-    ProceduralKura,
 )
 
 __all__ = [
@@ -32,17 +23,8 @@ __all__ = [
     "reduce_clusters",
     "reduce_dimensionality",
     
-    # Convenience functions
-    "run_full_pipeline",
-    "visualize_clusters",
-    
-    # Configuration
-    "PipelineConfig",
-    "PipelineModels", 
+    # Utilities
     "CheckpointManager",
-    
-    # Compatibility
-    "ProceduralKura",
 ]
 
 __version__ = "1.0.0" 

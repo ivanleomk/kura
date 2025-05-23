@@ -2,28 +2,36 @@
 """
 Example usage of the procedural Kura implementation.
 
-This script demonstrates different ways to use the new functional API.
+This script demonstrates how to use the core pipeline functions with keyword arguments
+and shows the design philosophy for handling different model types.
 """
 
 import asyncio
+import logging
 from typing import List
 
 # Import the procedural Kura components
-from kura.v1.kura import (
+from kura.v1 import (
     summarise_conversations,
-    generate_base_clusters,
-    reduce_clusters,
-    reduce_dimensionality,
-    run_full_pipeline,
-    visualize_clusters,
-    PipelineModels,
-    PipelineConfig,
-    CheckpointManager,
-    ProceduralKura
+    generate_base_clusters_from_conversation_summaries,
+    reduce_clusters_from_base_clusters,
+    reduce_dimensionality_from_clusters,
+    CheckpointManager
 )
 
-# Import existing Kura types (these would come from your actual data)
+# Import existing Kura models and types
 from kura.types import Conversation
+from kura.summarisation import SummaryModel
+from kura.cluster import ClusterModel
+from kura.meta_cluster import MetaClusterModel
+from kura.dimensionality import HDBUMAP
+
+# Set up logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 def create_sample_conversations() -> List[Conversation]:
@@ -35,229 +43,212 @@ def create_sample_conversations() -> List[Conversation]:
     ]
 
 
-async def example_functional_approach():
-    """Example 1: Using individual functions for maximum flexibility."""
-    print("=== Example 1: Functional Approach ===")
+async def basic_pipeline_example():
+    """Example: Using individual functions step by step with keyword arguments."""
+    logger.info("=== Basic Pipeline Example ===")
     
     conversations = create_sample_conversations()
     
     if not conversations:
-        print("No sample conversations available - skipping functional example")
+        logger.info("No sample conversations available - skipping example")
         return
     
-    # Set up configuration
-    config = PipelineConfig(
-        max_clusters=5,
-        checkpoint_dir="./example_checkpoints",
-        enable_checkpoints=True,
-        enable_progress=True
-    )
+    # Set up models
+    summary_model = SummaryModel()
+    cluster_model = ClusterModel()
+    meta_cluster_model = MetaClusterModel()
+    dimensionality_model = HDBUMAP()
     
-    # Set up models (using defaults)
-    models = PipelineModels()
-    
-    # Set up checkpoint manager
-    checkpoint_manager = CheckpointManager(
-        config.checkpoint_dir, 
-        config.enable_checkpoints
-    )
+    # Set up checkpointing (optional)
+    checkpoint_manager = CheckpointManager("./example_checkpoints", enabled=True)
     
     try:
-        # Run individual steps
-        print("Generating summaries...")
+        # Step 1: Generate summaries (using keyword arguments)
         summaries = await summarise_conversations(
             conversations,
-            models.summary_model,
-            checkpoint_manager
+            model=summary_model,
+            checkpoint_manager=checkpoint_manager
         )
-        print(f"Generated {len(summaries)} summaries")
         
-        print("Generating base clusters...")
-        clusters = await generate_base_clusters(
+        # Step 2: Generate base clusters
+        clusters = await generate_base_clusters_from_conversation_summaries(
             summaries,
-            models.cluster_model,
-            checkpoint_manager
+            model=cluster_model,
+            checkpoint_manager=checkpoint_manager
         )
-        print(f"Generated {len(clusters)} base clusters")
         
-        print("Reducing clusters...")
-        reduced_clusters = await reduce_clusters(
+        # Step 3: Reduce clusters hierarchically
+        reduced_clusters = await reduce_clusters_from_base_clusters(
             clusters,
-            models.meta_cluster_model,
-            checkpoint_manager
+            model=meta_cluster_model,
+            checkpoint_manager=checkpoint_manager
         )
-        print(f"Reduced to {len([c for c in reduced_clusters if c.parent_id is None])} root clusters")
         
-        print("Reducing dimensionality...")
-        projected_clusters = await reduce_dimensionality(
+        # Step 4: Project to 2D for visualization
+        projected_clusters = await reduce_dimensionality_from_clusters(
             reduced_clusters,
-            models.dimensionality_model,
-            checkpoint_manager
-        )
-        print(f"Projected {len(projected_clusters)} clusters to 2D")
-        
-        # Visualize results
-        print("Visualizing clusters...")
-        visualize_clusters(reduced_clusters, style="basic")
-        
-    except Exception as e:
-        print(f"Error in functional approach: {e}")
-
-
-async def example_convenience_function():
-    """Example 2: Using the convenience function."""
-    print("\n=== Example 2: Convenience Function ===")
-    
-    conversations = create_sample_conversations()
-    
-    if not conversations:
-        print("No sample conversations available - skipping convenience example")
-        return
-    
-    # Simple configuration
-    config = PipelineConfig(
-        max_clusters=3,
-        checkpoint_dir="./simple_example",
-        enable_progress=True
-    )
-    
-    # Default models
-    models = PipelineModels()
-    
-    try:
-        # Run the complete pipeline in one call
-        print("Running full pipeline...")
-        result = await run_full_pipeline(conversations, models, config)
-        print(f"Pipeline complete! Generated {len(result)} projected clusters")
-        
-    except Exception as e:
-        print(f"Error in convenience function: {e}")
-
-
-async def example_backward_compatibility():
-    """Example 3: Using the backward compatibility wrapper."""
-    print("\n=== Example 3: Backward Compatibility ===")
-    
-    conversations = create_sample_conversations()
-    
-    if not conversations:
-        print("No sample conversations available - skipping compatibility example")
-        return
-    
-    try:
-        # Use exactly like the original Kura class
-        kura = ProceduralKura(
-            max_clusters=4,
-            checkpoint_dir="./compat_example",
-            disable_progress=False
+            model=dimensionality_model,
+            checkpoint_manager=checkpoint_manager
         )
         
-        print("Running pipeline with compatibility wrapper...")
-        result = await kura.cluster_conversations(conversations)
-        print(f"Compatibility wrapper complete! Generated {len(result)} projected clusters")
-        
-        # Use original visualization methods
-        print("Visualizing with original methods...")
-        kura.visualise_clusters()
+        logger.info(f"Pipeline complete! Final result: {len(projected_clusters)} projected clusters")
         
     except Exception as e:
-        print(f"Error in backward compatibility: {e}")
+        logger.error(f"Error in pipeline: {e}")
 
 
-async def example_custom_pipeline():
-    """Example 4: Custom pipeline for experimentation."""
-    print("\n=== Example 4: Custom Pipeline ===")
+async def custom_pipeline_example():
+    """Example: Custom pipeline - skip meta-clustering, no checkpointing."""
+    logger.info("=== Custom Pipeline Example ===")
     
     conversations = create_sample_conversations()
     
     if not conversations:
-        print("No sample conversations available - skipping custom example")
+        logger.info("No sample conversations available - skipping custom example")
         return
     
+    # Set up models
+    summary_model = SummaryModel()
+    cluster_model = ClusterModel()
+    dimensionality_model = HDBUMAP()
+    
     try:
-        models = PipelineModels()
-        checkpoint_manager = CheckpointManager("./custom_experiment", enabled=False)
-        
-        # Custom pipeline: Skip meta-clustering, go straight to visualization
-        print("Running custom pipeline (skip meta-clustering)...")
-        
+        # Generate summaries (no checkpointing)
         summaries = await summarise_conversations(
             conversations, 
-            models.summary_model, 
-            checkpoint_manager
+            model=summary_model,
+            checkpoint_manager=None
         )
-        print(f"Generated {len(summaries)} summaries")
         
-        clusters = await generate_base_clusters(
+        # Generate base clusters
+        clusters = await generate_base_clusters_from_conversation_summaries(
             summaries, 
-            models.cluster_model, 
-            checkpoint_manager
+            model=cluster_model,
+            checkpoint_manager=None
         )
-        print(f"Generated {len(clusters)} base clusters")
         
-        # Skip reduce_clusters step and go straight to dimensionality reduction
-        projected = await reduce_dimensionality(
-            clusters,  # Use base clusters directly
-            models.dimensionality_model, 
-            checkpoint_manager
+        # Skip meta-clustering, go straight to dimensionality reduction
+        projected = await reduce_dimensionality_from_clusters(
+            clusters, 
+            model=dimensionality_model,
+            checkpoint_manager=None
         )
-        print(f"Projected {len(projected)} clusters (skipped meta-clustering)")
+        
+        logger.info(f"Custom pipeline complete (skipped meta-clustering): {len(projected)} projected clusters")
         
     except Exception as e:
-        print(f"Error in custom pipeline: {e}")
+        logger.error(f"Error in custom pipeline: {e}")
 
 
-def example_configuration_patterns():
-    """Example 5: Different configuration patterns."""
-    print("\n=== Example 5: Configuration Patterns ===")
+async def heterogeneous_models_example():
+    """Example: Different model types showing polymorphism."""
+    logger.info("=== Heterogeneous Models Example ===")
     
-    # Pattern 1: Minimal config
-    minimal_config = PipelineConfig()
-    print(f"Minimal config: {minimal_config.max_clusters} clusters, checkpoints: {minimal_config.enable_checkpoints}")
+    conversations = create_sample_conversations()
     
-    # Pattern 2: Research config (no checkpoints, detailed logging)
-    research_config = PipelineConfig(
-        max_clusters=15,
-        enable_checkpoints=False,
-        enable_progress=True,
-        checkpoint_dir="./research_temp"
+    if not conversations:
+        logger.info("No sample conversations available - skipping heterogeneous example")
+        return
+    
+    # This example shows how different model types can be used
+    # with the same function interface
+    
+    try:
+        # Example 1: Default model
+        default_model = SummaryModel()
+        summaries1 = await summarise_conversations(
+            conversations,
+            model=default_model,
+            checkpoint_manager=None
+        )
+        logger.info(f"Default model generated {len(summaries1)} summaries")
+        
+        # Example 2: Custom configuration
+        custom_model = SummaryModel()  # In practice, this might be OpenAISummaryModel, VLLMModel, etc.
+        summaries2 = await summarise_conversations(
+            conversations,
+            model=custom_model,
+            checkpoint_manager=None
+        )
+        logger.info(f"Custom model generated {len(summaries2)} summaries")
+        
+        # The function interface is the same regardless of model implementation
+        logger.info("Both models work with the same function interface!")
+        
+    except Exception as e:
+        logger.error(f"Error in heterogeneous models example: {e}")
+
+
+def checkpoint_configuration_example():
+    """Example: Different checkpoint configurations."""
+    logger.info("=== Checkpoint Configuration Example ===")
+    
+    # Pattern 1: Checkpoints enabled
+    checkpoint_manager = CheckpointManager("./my_checkpoints", enabled=True)
+    logger.info(f"Checkpoint manager created: {checkpoint_manager.checkpoint_dir}")
+    logger.info(f"Checkpoints enabled: {checkpoint_manager.enabled}")
+    
+    # Pattern 2: Checkpoints disabled
+    no_checkpoint_manager = CheckpointManager("./temp", enabled=False)
+    logger.info(f"Checkpoints disabled: {no_checkpoint_manager.enabled}")
+    
+    # Pattern 3: No checkpoint manager (pass None to functions)
+    logger.info("Can also pass checkpoint_manager=None to disable checkpointing")
+
+
+def keyword_arguments_example():
+    """Example: Demonstrating the importance of keyword arguments."""
+    logger.info("=== Keyword Arguments Example ===")
+    
+    # Show how keyword arguments make the API more explicit and maintainable
+    
+    conversations = create_sample_conversations()
+    if not conversations:
+        logger.info("No conversations available for keyword arguments demo")
+        return
+    
+    logger.info("Recommended usage with keyword arguments:")
+    logger.info("""
+    # Explicit and clear
+    summaries = await summarise_conversations(
+        conversations,
+        model=my_summary_model,
+        checkpoint_manager=my_checkpoint_manager
     )
-    print(f"Research config: {research_config.max_clusters} clusters, checkpoints: {research_config.enable_checkpoints}")
     
-    # Pattern 3: Production config (with checkpoints, minimal output)
-    production_config = PipelineConfig(
-        max_clusters=8,
-        enable_checkpoints=True,
-        enable_progress=False,
-        checkpoint_dir="./production_checkpoints"
+    # Easy to read and understand
+    clusters = await generate_base_clusters_from_conversation_summaries(
+        summaries,
+        model=my_cluster_model,
+        checkpoint_manager=None  # Disable checkpointing for this step
     )
-    print(f"Production config: {production_config.max_clusters} clusters, progress: {production_config.enable_progress}")
+    """)
     
-    # Pattern 4: Custom models
-    custom_models = PipelineModels(
-        # You could provide custom implementations here
-        # summary_model=MyCustomSummaryModel(),
-        # cluster_model=MyExperimentalClusterModel()
-    )
-    print(f"Custom models configured")
+    logger.info("This is much clearer than positional arguments!")
 
 
 async def main():
     """Run all examples."""
-    print("Procedural Kura Examples")
-    print("=" * 50)
+    logger.info("Procedural Kura Examples")
+    logger.info("=" * 60)
     
     # Run examples
-    await example_functional_approach()
-    await example_convenience_function()
-    await example_backward_compatibility()
-    await example_custom_pipeline()
-    example_configuration_patterns()
+    await basic_pipeline_example()
+    await custom_pipeline_example()
+    await heterogeneous_models_example()
+    checkpoint_configuration_example()
+    keyword_arguments_example()
     
-    print("\n" + "=" * 50)
-    print("Examples complete!")
-    print("\nNote: Most examples were skipped because no sample conversation data was provided.")
-    print("In a real scenario, you would load actual Conversation objects.")
+    logger.info("=" * 60)
+    logger.info("Examples complete!")
+    logger.info("Note: Most examples were skipped because no sample conversation data was provided.")
+    logger.info("In a real scenario, you would load actual Conversation objects.")
+    logger.info("")
+    logger.info("Key takeaways:")
+    logger.info("1. Use keyword arguments for clarity")
+    logger.info("2. Functions work with any model that implements the base interface")
+    logger.info("3. Checkpoint management is flexible and optional")
+    logger.info("4. Easy to compose custom pipelines")
 
 
 if __name__ == "__main__":
