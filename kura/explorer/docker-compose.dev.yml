@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    # Backend is already configured for hot reloading in the main docker-compose.yml
+    # Volume mount: ./backend:/app enables file watching
+    # Command: --reload enables uvicorn auto-reload
+    build:
+      target: development
+    environment:
+      - KURA_CHECKPOINT_DIR=/checkpoints
+      - PYTHONPATH=/app:/kura
+      - DEBUG=1
+
+  frontend:
+    # Override for development mode with hot reloading
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      cache_from:
+        - kura-explorer-frontend:dev
+    image: kura-explorer-frontend:dev
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"  # Vite dev server port
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules  # Exclude node_modules from volume mount
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - backend
+
+  # Disable nginx in development
+  nginx:
+    profiles:
+      - disabled 

@@ -45,6 +45,35 @@ docker-compose --profile with-proxy up
 # Access everything at http://localhost:8080
 ```
 
+## 🔥 Development with Hot Reloading
+
+For development with automatic rebuilding when files change:
+
+### Quick Start
+```bash
+cd kura/explorer
+./dev.sh
+```
+
+### Manual Start
+```bash
+# Start with hot reloading enabled
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+**What you get:**
+- ✅ **Backend hot reloading** - Python file changes trigger automatic reloads
+- ✅ **Frontend hot reloading** - React/TypeScript changes trigger instant rebuilds  
+- ✅ **Fast HMR** - React Fast Refresh preserves component state
+- ✅ **Tailwind CSS** - Style changes apply instantly
+- ✅ **File watching** - Works reliably in Docker environment
+
+**Access:**
+- Frontend (with HMR): http://localhost:5173
+- Backend API: http://localhost:8001
+
+📖 **See [README.dev.md](./README.dev.md) for complete development guide**
+
 ### Option 2: Using the CLI
 
 ```bash
@@ -90,6 +119,26 @@ The API documentation is available at http://localhost:8001/docs when the backen
 
 ## Development
 
+### Hot Reloading Development (Recommended)
+
+For the best development experience with automatic rebuilding:
+
+```bash
+# Start development environment with hot reloading
+./dev.sh
+
+# Or manually
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+This setup provides:
+- **Backend**: `uvicorn --reload` watches Python files
+- **Frontend**: Vite dev server with React Fast Refresh
+- **Volume mounting**: Local files are mounted for instant updates
+- **API proxy**: Frontend automatically proxies to backend
+
+📖 **See [README.dev.md](./README.dev.md) for detailed development guide**
+
 ### Backend Development
 
 The backend uses FastAPI and SQLModel. Key files:
@@ -112,6 +161,8 @@ The frontend uses React with TypeScript. Key directories:
 2. Update the API client in `frontend/src/lib/api.ts`
 3. Create new components or pages as needed
 4. Update the navigation in `frontend/src/components/Layout.tsx`
+
+**💡 Tip**: Use the hot reloading setup (`./dev.sh`) for fastest development iteration!
 
 ## Docker Configuration
 
