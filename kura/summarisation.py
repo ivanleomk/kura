@@ -1,5 +1,5 @@
 from asyncio import Semaphore, gather
-from typing import Any, Callable, Optional, Union
+from typing import Any, Awaitable, Callable, Optional, Union
 
 import instructor
 from pydantic import BaseModel, Field
@@ -7,24 +7,39 @@ from tqdm.asyncio import tqdm_asyncio
 import asyncio
 
 from kura.base_classes import BaseSummaryModel
-from kura.types import Conversation, ConversationSummary, ExtractedProperty
-from kura.types.summarisation import GeneratedSummary
-
+from kura.types import Conversation
 
 
 class GeneratedSummary(BaseModel):
-    summary: str = Field(..., description="A clear and concise summary of the conversation in at most two sentences, avoiding phrases like 'Based on the conversation' and excluding proper nouns or PII")
-    request: Optional[str] = Field(None, description="The user's overall request for the assistant")
-    languages: Optional[list[str]] = Field(None, description="Main languages present in the conversation including human and programming languages (e.g., ['english', 'arabic', 'python', 'javascript'])")
-    task: Optional[str] = Field(None, description="The task the model is being asked to perform")
-    concerning_score: Optional[int] = Field(None, ge=1, le=5, description="Safety concern rating from 1-5 scale")
-    user_frustration: Optional[int] = Field(None, ge=1, le=5, description="User frustration rating from 1-5 scale")
-    assistant_errors: Optional[list[str]] = Field(None, description="List of errors the assistant made")
-    
+    summary: str = Field(
+        ...,
+        description="A clear and concise summary of the conversation in at most two sentences, avoiding phrases like 'Based on the conversation' and excluding proper nouns or PII",
+    )
+    request: Optional[str] = Field(
+        None, description="The user's overall request for the assistant"
+    )
+    languages: Optional[list[str]] = Field(
+        None,
+        description="Main languages present in the conversation including human and programming languages (e.g., ['english', 'arabic', 'python', 'javascript'])",
+    )
+    task: Optional[str] = Field(
+        None, description="The task the model is being asked to perform"
+    )
+    concerning_score: Optional[int] = Field(
+        None, ge=1, le=5, description="Safety concern rating from 1-5 scale"
+    )
+    user_frustration: Optional[int] = Field(
+        None, ge=1, le=5, description="User frustration rating from 1-5 scale"
+    )
+    assistant_errors: Optional[list[str]] = Field(
+        None, description="List of errors the assistant made"
+    )
+
 
 class ConversationSummary(GeneratedSummary):
     chat_id: str
     metadata: dict
+
 
 class ExtractedProperty(BaseModel):
     name: str
@@ -38,12 +53,11 @@ class SummaryModel(BaseSummaryModel):
         max_concurrent_requests: int = 50,
         extractors: list[
             Callable[
-                [Conversation, Semaphore, dict[str, Any]],
-                dict,
+                [Conversation, Semaphore],
+                Awaitable[Union[ExtractedProperty, list[ExtractedProperty]]],
             ]
         ] = [],
     ):
-        self.sems = None
         self.extractors = extractors
         self.max_concurrent_requests = max_concurrent_requests
         self.model = model
@@ -52,10 +66,6 @@ class SummaryModel(BaseSummaryModel):
     async def summarise(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
-        # Initialise Semaphore if not already done
-        if self.sems is None:
-            self.sems = self.semaphore
-
         summaries = await tqdm_asyncio.gather(
             *[
                 self.summarise_conversation(conversation)
@@ -69,8 +79,7 @@ class SummaryModel(BaseSummaryModel):
         self, conversation: Conversation
     ) -> dict[str, Union[str, int, float, bool, list[str], list[int], list[float]]]:
         coros = [
-            extractor(conversation, self.semaphore)
-            for extractor in self.extractors
+            extractor(conversation, self.semaphore) for extractor in self.extractors
         ]
         metadata_extracted = await gather(*coros)  # pyright: ignore
 
@@ -110,7 +119,7 @@ class SummaryModel(BaseSummaryModel):
         client = instructor.from_provider(self.model, async_client=True)
         async with self.semaphore:  # type: ignore
             resp = await client.chat.completions.create(  # type: ignore
-                temperature=0.2, # as per the Clio paper
+                temperature=0.2,  # as per the Clio paper
                 messages=[
                     {
                         "role": "user",
