@@ -3,7 +3,7 @@
 # Start the backend API in the background
 echo "Starting Kura Explorer Backend..."
 cd backend
-python3 -m uvicorn main:app --reload --port 8001 &
+uv run uvicorn main:app --reload --port 8001 &
 BACKEND_PID=$!
 
 # Wait a moment for backend to start
