@@ -64,7 +64,6 @@ class Kura:
         checkpoint_dir: str = "./checkpoints",
         conversation_checkpoint_name: str = "conversations.json",
         disable_checkpoints: bool = False,
-        override_checkpoint_dir: bool = False,
         console: Optional['Console'] = None,
         disable_progress: bool = False,
         **kwargs, # For future use
@@ -202,11 +201,6 @@ class Kura:
             return
 
         if not os.path.exists(self.checkpoint_dir):
-            os.makedirs(self.checkpoint_dir)
-
-        if self.override_checkpoint_dir:
-            # We will just remove all files for now
-            shutil.rmtree(self.checkpoint_dir)
             os.makedirs(self.checkpoint_dir)
 
     async def reduce_clusters(self, clusters: list[Cluster]) -> list[Cluster]:
