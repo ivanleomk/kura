@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from kura.summarisation import ConversationSummary, Conversation
+from kura.types import ConversationSummary, Conversation
 from typing import Union
 
 

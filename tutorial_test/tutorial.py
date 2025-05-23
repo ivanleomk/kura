@@ -1,4 +1,3 @@
-from openai import AsyncOpenAI
 from kura import Kura
 from kura.cluster import ClusterModel
 from kura.meta_cluster import MetaClusterModel
@@ -14,23 +13,22 @@ kura = Kura(
     checkpoint_dir="./tutorial_checkpoints",
     summarisation_model=SummaryModel(
         model="openai/gpt-4.1",
-        concurrent_requests=50,
+        max_concurrent_requests=50,
     ),
     cluster_model=ClusterModel(
         model="openai/gpt-4.1",
-        concurrent_requests=50,
+        max_concurrent_requests=50,
     ),
     meta_cluster_model=MetaClusterModel(
         model="openai/gpt-4.1",
-        concurrent_requests=50,
+        max_concurrent_requests=50,
     ),
-    override_checkpoint_dir=True
+    override_checkpoint_dir=True,
 )
 
 # Load sample data
 conversations = Conversation.from_hf_dataset(
-    "ivanleomk/synthetic-gemini-conversations",
-    split="train"
+    "ivanleomk/synthetic-gemini-conversations", split="train"
 )
 print(f"Loaded {len(conversations)} conversations")
 
@@ -41,7 +39,11 @@ print(f"Created at: {sample_conversation.created_at}")
 print(f"Number of messages: {len(sample_conversation.messages)}")
 print("\nSample messages:")
 for i, msg in enumerate(sample_conversation.messages[:3]):
-    print(f"{msg.role}: {msg.content[:100]}..." if len(msg.content) > 100 else f"{msg.role}: {msg.content}")
+    print(
+        f"{msg.role}: {msg.content[:100]}..."
+        if len(msg.content) > 100
+        else f"{msg.role}: {msg.content}"
+    )
 
 # Process conversations
 clustered_data = asyncio.run(kura.cluster_conversations(conversations))
@@ -53,4 +55,4 @@ kura.visualise_clusters()
 # Start web server
 print("\nStarting web server. Press Ctrl+C to stop.")
 os.environ["KURA_CHECKPOINT_DIR"] = "./tutorial_checkpoints"
-subprocess.run(["kura"]) 
+subprocess.run(["kura"])

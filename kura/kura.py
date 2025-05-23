@@ -17,7 +17,7 @@ import os
 from typing import TypeVar
 from pydantic import BaseModel
 from kura.types.dimensionality import ProjectedCluster
-from kura.summarisation import ConversationSummary
+from kura.types import ConversationSummary
 
 T = TypeVar("T", bound=BaseModel)
 
