@@ -5,6 +5,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      cache_from:
+        - kura-explorer-backend:latest
+    image: kura-explorer-backend:latest
     ports:
       - "${BACKEND_PORT:-8001}:8001"
     environment:
@@ -26,6 +29,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      cache_from:
+        - kura-explorer-frontend:latest
+    image: kura-explorer-frontend:latest
     ports:
       - "${FRONTEND_PORT:-5173}:80"
     depends_on:
