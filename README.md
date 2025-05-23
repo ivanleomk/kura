@@ -62,7 +62,6 @@ kura = Kura(
     embedding_model=OpenAIEmbeddingModel(),
     summarisation_model=SummaryModel(),
     dimensionality_reduction=DimensionalityReduction(),
-    max_clusters=10,
     checkpoint_dir="./checkpoints",
 )
 
