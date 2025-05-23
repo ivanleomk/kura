@@ -15,7 +15,13 @@ router = APIRouter()
 
 def get_explorer() -> KuraExplorer:
     """Dependency to get explorer instance."""
-    from kura.explorer.backend.main import explorer
+    try:
+        # Try to import from main directly (when running with uvicorn)
+        from main import explorer
+    except ImportError:
+        # Fallback to full path (for testing)
+        from kura.explorer.backend.main import explorer
+    
     if not explorer:
         raise HTTPException(status_code=503, detail="Explorer not initialized")
     return explorer
