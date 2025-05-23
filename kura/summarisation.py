@@ -35,7 +35,7 @@ class SummaryModel(BaseSummaryModel):
     def __init__(
         self,
         model: str = "gemini/gemini-2.0-flash",
-        concurrent_requests: int = 50,
+        max_concurrent_requests: int = 50,
         extractors: list[
             Callable[
                 [Conversation, Semaphore, dict[str, Any]],
@@ -45,9 +45,9 @@ class SummaryModel(BaseSummaryModel):
     ):
         self.sems = None
         self.extractors = extractors
-        self.concurrent_requests = concurrent_requests
+        self.max_concurrent_requests = max_concurrent_requests
         self.model = model
-        self.semaphore = asyncio.Semaphore(concurrent_requests)
+        self.semaphore = asyncio.Semaphore(max_concurrent_requests)
 
     async def summarise(
         self, conversations: list[Conversation]
