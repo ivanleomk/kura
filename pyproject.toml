@@ -20,6 +20,8 @@ dependencies = [
     "instructor>=1.8.3",
     "thefuzz>=0.22.1",
     "ruff>=0.11.11",
+    "typer>=0.9.0",
+    "sqlmodel>=0.0.14",
 ]
 
 

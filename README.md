@@ -242,6 +242,8 @@ Checkpoints are stored in the directory specified by `checkpoint_dir` (default: 
 
 ## CLI Commands
 
+### Web Interface
+
 Run Kura's web interface:
 
 ```bash
@@ -251,6 +253,46 @@ kura start-app
 # Use a custom checkpoint directory
 kura start-app --dir ./my-checkpoints
 ```
+
+### Data Explorer API
+
+Start the explorer API to analyze checkpoint data:
+
+```bash
+# Start the explorer API
+kura explore ./checkpoints
+
+# Start on a custom port
+kura explore ./checkpoints --port 8080
+
+# The API will be available at:
+# - http://localhost:8001 (default)
+# - http://localhost:8001/docs (interactive API documentation)
+```
+
+#### API Endpoints
+
+Core endpoints:
+- `GET /api/stats` - Overall statistics
+- `GET /api/clusters` - List clusters with filtering and sorting
+- `GET /api/clusters/{id}` - Detailed cluster information  
+- `GET /api/conversations` - Browse conversations with pagination
+- `GET /api/conversations/{id}` - Full conversation with messages
+- `GET /api/search?q=...` - Search across all data
+
+Analysis endpoints:
+- `GET /api/insights/language-stats` - Language usage distribution
+- `GET /api/insights/frustration-map` - User frustration heatmap
+- `GET /api/insights/themes` - Common themes across clusters
+- `GET /api/insights/outliers` - Unusual conversations
+- `POST /api/insights/compare-clusters` - Compare multiple clusters
+
+The explorer provides:
+- **RESTful API** for building custom frontends
+- **Filtering and sorting** by frustration, language, metadata
+- **Paginated responses** for large datasets
+- **Aggregate analysis** across conversation clusters
+- **SQLite backend** for efficient querying
 
 ## Extending Kura
 

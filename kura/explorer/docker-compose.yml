@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${BACKEND_PORT:-8001}:8001"
+    environment:
+      - KURA_CHECKPOINT_DIR=/checkpoints
+      - PYTHONPATH=/app:/kura
+    volumes:
+      - ${KURA_CHECKPOINT_DIR:-./checkpoints}:/checkpoints:ro
+      - ./backend:/app
+      - ../..:/kura:ro  # Mount parent kura package
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
+
+  # Optional: Nginx reverse proxy to serve both frontend and backend on same port
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "${PROXY_PORT:-8080}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+    profiles:
+      - with-proxy
