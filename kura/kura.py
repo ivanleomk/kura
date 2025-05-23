@@ -80,7 +80,6 @@ class Kura:
             checkpoint_dir: Directory for saving intermediate results (default: "./checkpoints")
             conversation_checkpoint_name: Filename for conversations checkpoint (default: "conversations.json")
             disable_checkpoints: Whether to disable checkpoint loading/saving (default: False)
-            override_checkpoint_dir: Whether to clear existing checkpoint directory (default: False)
             console: Optional Rich console instance to use for output (default: None, will create if Rich is available)
             disable_progress: Whether to disable all progress bars for cleaner output (default: False)
             
