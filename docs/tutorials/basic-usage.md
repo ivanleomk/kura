@@ -177,6 +177,115 @@ os.environ["KURA_CHECKPOINT_DIR"] = "./tutorial_checkpoints"
 subprocess.run(["kura"])
 ```
 
+## Procedural API Example
+
+Kura v1 offers a procedural API that provides more flexibility. Here's the same workflow using the procedural approach:
+
+```python
+from kura.v1 import (
+    summarise_conversations,
+    generate_base_clusters_from_conversation_summaries,
+    reduce_clusters_from_base_clusters,
+    reduce_dimensionality_from_clusters,
+    CheckpointManager
+)
+from kura.summarisation import SummaryModel
+from kura.cluster import ClusterModel
+from kura.meta_cluster import MetaClusterModel
+from kura.dimensionality import HDBUMAP
+from kura.types import Conversation
+import asyncio
+
+async def analyze_with_procedural_api():
+    # Set up models
+    summary_model = SummaryModel()
+    cluster_model = ClusterModel()
+    meta_cluster_model = MetaClusterModel(max_clusters=10)
+    dimensionality_model = HDBUMAP()
+    
+    # Set up checkpointing
+    checkpoint_manager = CheckpointManager("./tutorial_checkpoints", enabled=True)
+    
+    # Load data
+    conversations = Conversation.from_hf_dataset(
+        "ivanleomk/synthetic-gemini-conversations",
+        split="train"
+    )
+    print(f"Loaded {len(conversations)} conversations")
+    
+    # Run pipeline steps individually
+    print("Generating summaries...")
+    summaries = await summarise_conversations(
+        conversations,
+        model=summary_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    print("Creating base clusters...")
+    clusters = await generate_base_clusters_from_conversation_summaries(
+        summaries,
+        model=cluster_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    print("Building cluster hierarchy...")
+    reduced_clusters = await reduce_clusters_from_base_clusters(
+        clusters,
+        model=meta_cluster_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    print("Projecting to 2D...")
+    projected = await reduce_dimensionality_from_clusters(
+        reduced_clusters,
+        model=dimensionality_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    print(f"Generated {len(projected)} projected clusters")
+    return projected
+
+# Run the procedural pipeline
+result = asyncio.run(analyze_with_procedural_api())
+```
+
+### Benefits of the Procedural API
+
+1. **Fine Control**: Run only the steps you need
+2. **Custom Pipelines**: Skip or reorder steps as needed
+3. **A/B Testing**: Easy to test different models side-by-side
+4. **Debugging**: Inspect intermediate results between steps
+
+### Example: Skip Meta-Clustering
+
+```python
+async def custom_pipeline():
+    # ... load conversations and set up models ...
+    
+    # Generate summaries
+    summaries = await summarise_conversations(
+        conversations,
+        model=summary_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    # Generate base clusters
+    clusters = await generate_base_clusters_from_conversation_summaries(
+        summaries,
+        model=cluster_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    # Skip meta-clustering, go straight to dimensionality reduction
+    projected = await reduce_dimensionality_from_clusters(
+        clusters,  # Use base clusters directly
+        model=dimensionality_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    return projected
+```
+
 ## Next Steps
 
 Now that you've completed the basic tutorial, you can:
@@ -185,3 +294,4 @@ Now that you've completed the basic tutorial, you can:
 2. [Customize the models](../guides/custom-models.md)
 3. [Explore advanced usage](advanced-usage.md)
 4. [Work with metadata](../guides/metadata.md)
+5. [Learn more about the procedural API](../guides/procedural-api.md)

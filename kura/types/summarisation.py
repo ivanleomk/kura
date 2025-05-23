@@ -27,6 +27,9 @@ class GeneratedSummary(BaseModel):
         None, description="List of errors the assistant made"
     )
 
+    def embeddable_text(self) -> str:
+        return f"Summary: {self.summary}\nRequest: {self.request}\nTask: {self.task}\nLanguages: {self.languages}\nAssistant Errors: {self.assistant_errors}"
+
 
 class ConversationSummary(GeneratedSummary):
     chat_id: str

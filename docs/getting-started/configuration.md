@@ -1,8 +1,20 @@
 # Configuration
 
-This guide explains the various configuration options available in Kura and how to customize them for your specific needs.
+This guide explains the various configuration options available in Kura and how to customize them for your specific needs. Kura offers two APIs: a class-based approach and a procedural approach (v1).
 
-## Main Configuration Parameters
+## Choosing an API
+
+### Class-Based API (Original)
+Best for simple pipelines where you want to run all steps in sequence.
+
+### Procedural API (v1)
+Best for flexible pipelines where you need:
+- Fine control over individual steps
+- Ability to skip or reorder steps
+- A/B testing different models
+- Functional programming style
+
+## Class-Based Configuration
 
 When initializing a `Kura` instance, you can configure various aspects of its behavior:
 
@@ -127,6 +139,98 @@ When using the CLI, you can configure the checkpoint directory:
 kura --dir ./my_checkpoints
 ```
 
+## Procedural API Configuration (v1)
+
+The procedural API provides more flexibility by breaking the pipeline into composable functions:
+
+```python
+from kura.v1 import (
+    summarise_conversations,
+    generate_base_clusters_from_conversation_summaries,
+    reduce_clusters_from_base_clusters,
+    reduce_dimensionality_from_clusters,
+    CheckpointManager
+)
+from kura.summarisation import SummaryModel
+from kura.cluster import ClusterModel
+from kura.meta_cluster import MetaClusterModel
+from kura.dimensionality import HDBUMAP
+
+# Configure models independently
+summary_model = SummaryModel()
+cluster_model = ClusterModel()
+meta_cluster_model = MetaClusterModel(max_clusters=10)
+dimensionality_model = HDBUMAP()
+
+# Optional checkpoint management
+checkpoint_manager = CheckpointManager("./my_checkpoints", enabled=True)
+
+# Run pipeline with keyword arguments
+async def analyze():
+    summaries = await summarise_conversations(
+        conversations,
+        model=summary_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    clusters = await generate_base_clusters_from_conversation_summaries(
+        summaries,
+        model=cluster_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    reduced = await reduce_clusters_from_base_clusters(
+        clusters,
+        model=meta_cluster_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    projected = await reduce_dimensionality_from_clusters(
+        reduced,
+        model=dimensionality_model,
+        checkpoint_manager=checkpoint_manager
+    )
+    
+    return projected
+```
+
+### Key Differences
+
+1. **Explicit Function Calls**: Each step is a separate function call
+2. **Keyword Arguments**: All functions use keyword-only arguments for clarity
+3. **Model Configuration**: Models are configured independently before use
+4. **Checkpoint Control**: Pass `None` to disable checkpointing for specific steps
+
+### Heterogeneous Models
+
+The procedural API excels at working with different model implementations:
+
+```python
+# Use different backends for the same task
+from kura.v1 import summarise_conversations
+
+# OpenAI backend
+openai_summaries = await summarise_conversations(
+    conversations,
+    model=OpenAISummaryModel(api_key="sk-..."),
+    checkpoint_manager=checkpoint_mgr
+)
+
+# Local vLLM backend
+vllm_summaries = await summarise_conversations(
+    conversations,
+    model=VLLMSummaryModel(model_path="/models/llama"),
+    checkpoint_manager=checkpoint_mgr
+)
+
+# Hugging Face backend
+hf_summaries = await summarise_conversations(
+    conversations,
+    model=HuggingFaceSummaryModel("facebook/bart-large-cnn"),
+    checkpoint_manager=checkpoint_mgr
+)
+```
+
 ## Next Steps
 
 Now that you understand how to configure Kura, you can:
@@ -134,3 +238,4 @@ Now that you understand how to configure Kura, you can:
 - [Learn about core concepts](../core-concepts/overview.md)
 - [Explore how to customize models](../guides/custom-models.md)
 - [See how to work with metadata](../guides/metadata.md)
+- [Try the procedural API examples](../tutorials/basic-usage.md#procedural-api-example)
