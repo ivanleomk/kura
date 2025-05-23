@@ -199,14 +199,14 @@ async def get_cluster(
     # Get hierarchy
     hierarchy = explorer.get_cluster_hierarchy(cluster_id)
     
-    # Get sample conversations
-    sample_convs = []
-    for conv in cluster_detail.conversations[:10]:
+    # Get all conversations (not just samples)
+    all_conversations = []
+    for conv in cluster_detail.conversations:
         summary = explorer.get_summary(conv.chat_id)
-        sample_convs.append(ConversationResponse(
+        all_conversations.append(ConversationResponse(
             id=conv.chat_id,
             created_at=conv.created_at,
-            metadata=conv.metadata_json,
+            metadata=conv.metadata_json or {},
             message_count=conv.message_count,
             summary=SummaryResponse(**summary.__dict__) if summary else None,
             cluster_names=[]
@@ -247,7 +247,7 @@ async def get_cluster(
                 child_count=0
             ) for child in cluster_detail.children
         ],
-        sample_conversations=sample_convs,
+        conversations=all_conversations,
         hierarchy=[
             ClusterResponse(
                 id=h.id,
