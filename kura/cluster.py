@@ -25,7 +25,7 @@ class ClusterModel(BaseClusterModel):
         clustering_method: BaseClusteringMethod = KmeansClusteringMethod(),
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         max_concurrent_requests: int = 50,
-        model: str = "openai/gpt-4o",
+        model: str = "openai/gpt-4o-mini",
         console: Optional['Console'] = None,
         **kwargs, # For future use
     ):

@@ -161,7 +161,7 @@ async def summarise_conversations(
     return summaries
 
 
-async def generate_base_clusters(
+async def generate_base_clusters_from_conversation_summaries(
     summaries: List[ConversationSummary],
     *,
     model: BaseClusterModel,
@@ -213,7 +213,7 @@ async def generate_base_clusters(
     return clusters
 
 
-async def reduce_clusters(
+async def reduce_clusters_from_base_clusters( 
     clusters: List[Cluster],
     *,
     model: BaseMetaClusterModel,
@@ -285,7 +285,7 @@ async def reduce_clusters(
     return all_clusters
 
 
-async def reduce_dimensionality(
+async def reduce_dimensionality_from_clusters(
     clusters: List[Cluster],
     *,
     model: BaseDimensionalityReduction,

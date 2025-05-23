@@ -36,11 +36,11 @@ logger = logging.getLogger(__name__)
 
 def create_sample_conversations() -> List[Conversation]:
     """Create some sample conversations for demonstration."""
-    # This is just for example - in practice you'd load real conversation data
-    return [
-        # You would create actual Conversation objects here
-        # For demo purposes, we'll return an empty list
-    ]
+    conversations = Conversation.from_hf_dataset(
+        "ivanleomk/synthetic-gemini-conversations",
+        split="train"
+    )
+    return conversations
 
 
 async def basic_pipeline_example():
@@ -60,7 +60,7 @@ async def basic_pipeline_example():
     dimensionality_model = HDBUMAP()
     
     # Set up checkpointing (optional)
-    checkpoint_manager = CheckpointManager("./example_checkpoints", enabled=True)
+    checkpoint_manager = CheckpointManager("./tutorial_checkpoints", enabled=True)
     
     try:
         # Step 1: Generate summaries (using keyword arguments)
