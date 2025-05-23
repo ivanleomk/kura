@@ -1,10 +1,10 @@
 from asyncio import Semaphore, gather
-from typing import Any, Awaitable, Callable, Optional, Union
+from typing import Awaitable, Callable, Optional, Union
 
 import instructor
 from pydantic import BaseModel, Field
 from tqdm.asyncio import tqdm_asyncio
-import asyncio
+
 
 from kura.base_classes import BaseSummaryModel
 from kura.types import Conversation
@@ -61,7 +61,7 @@ class SummaryModel(BaseSummaryModel):
         self.extractors = extractors
         self.max_concurrent_requests = max_concurrent_requests
         self.model = model
-        self.semaphore = asyncio.Semaphore(max_concurrent_requests)
+        self.semaphore = Semaphore(max_concurrent_requests)
 
     async def summarise(
         self, conversations: list[Conversation]

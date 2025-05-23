@@ -1,7 +1,8 @@
 from kura.base_classes import BaseClusterModel, BaseClusteringMethod, BaseEmbeddingModel
 from kura.embedding import OpenAIEmbeddingModel
 from kura.k_means import KmeansClusteringMethod
-from kura.types import ConversationSummary, Cluster, GeneratedCluster
+from kura.summarisation import ConversationSummary
+from kura.types import Cluster, GeneratedCluster
 from tqdm.asyncio import tqdm_asyncio
 import numpy as np
 from asyncio import Semaphore
@@ -86,13 +87,13 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                     """,
                     },
                     {
-                        "role": "user", 
-                        "content": "The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job.'"
+                        "role": "user",
+                        "content": "The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job.'",
                     },
                     {
                         "role": "assistant",
-                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name: <summary>"
-                    }
+                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name: <summary>",
+                    },
                 ],
                 response_model=GeneratedCluster,
                 context={
