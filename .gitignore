@@ -41,3 +41,6 @@ node_modules/
 # Logs
 logs/
 *.log
+
+# Examples directory
+examples/
