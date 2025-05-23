@@ -127,7 +127,7 @@ class ClusterVisualizer:
                 id=node.id,
                 name=node.name,
                 description=node.description,
-                count=node.count,  # pyright: ignore
+                count=len(node.chat_ids),  # Access the actual count value
                 children=[],
             )
 
@@ -242,14 +242,14 @@ class ClusterVisualizer:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
         node_id_to_cluster = {}
-        total_conversations = sum(node.count for node in clusters if not node.parent_id)
+        total_conversations = sum(len(node.chat_ids) for node in clusters if not node.parent_id)
 
         for node in clusters:
             node_id_to_cluster[node.id] = ClusterTreeNode(
                 id=node.id,
                 name=node.name,
                 description=node.description,
-                count=node.count,
+                count=len(node.chat_ids),  # Access the actual count value
                 children=[],
             )
 
@@ -304,14 +304,14 @@ class ClusterVisualizer:
 
         # Build cluster tree structure
         node_id_to_cluster = {}
-        total_conversations = sum(node.count for node in clusters if not node.parent_id)
+        total_conversations = sum(len(node.chat_ids) for node in clusters if not node.parent_id)
 
         for node in clusters:
             node_id_to_cluster[node.id] = ClusterTreeNode(
                 id=node.id,
                 name=node.name,
                 description=node.description,
-                count=node.count,
+                count=len(node.chat_ids),  # Access the actual count value
                 children=[],
             )
 
@@ -320,6 +320,11 @@ class ClusterVisualizer:
                 node_id_to_cluster[node.parent_id].children.append(node.id)
 
         # Create Rich Tree
+        if Tree is None:
+            print("⚠️  Rich Tree component not available. Using enhanced visualization...")
+            self.visualise_clusters_enhanced()
+            return
+            
         tree = Tree(
             f"[bold bright_cyan]📚 All Clusters ({total_conversations:,} conversations)[/]",
             style="bold bright_cyan"
@@ -362,6 +367,12 @@ class ClusterVisualizer:
         for root_node in sorted(root_nodes, key=lambda x: x.count, reverse=True):
             add_node_to_tree(tree, root_node)
 
+        # Only create tables if Rich components are available
+        if Table is None or ROUNDED is None:
+            if self.console:
+                self.console.print(tree)
+            return
+
         # Create statistics table
         stats_table = Table(title="📈 Cluster Statistics", box=ROUNDED, title_style="bold bright_cyan")
         stats_table.add_column("Metric", style="bold bright_yellow")
@@ -394,20 +405,33 @@ class ClusterVisualizer:
             size_table.add_row(range_name, f"{count}", f"{percentage:.1f}%")
 
         # Display everything
-        self.console.print("\n")
-        self.console.print(Panel(
-            Align.center(Text("🎯 RICH CLUSTER VISUALIZATION", style="bold bright_cyan")),
-            box=ROUNDED,
-            style="bright_cyan"
-        ))
-        self.console.print("\n")
-        self.console.print(tree)
-        self.console.print("\n")
-        
-        # Display tables side by side
-        layout = Table.grid(padding=2)
-        layout.add_column()
-        layout.add_column()
-        layout.add_row(stats_table, size_table)
-        self.console.print(layout)
-        self.console.print("\n")
+        if self.console:
+            self.console.print("\n")
+            
+            # Only use Panel and Align if they're available
+            if Panel is not None and Align is not None and Text is not None:
+                self.console.print(Panel(
+                    Align.center(Text("🎯 RICH CLUSTER VISUALIZATION", style="bold bright_cyan")),
+                    box=ROUNDED,
+                    style="bright_cyan"
+                ))
+            else:
+                self.console.print("[bold bright_cyan]🎯 RICH CLUSTER VISUALIZATION[/]")
+                
+            self.console.print("\n")
+            self.console.print(tree)
+            self.console.print("\n")
+            
+            # Display tables side by side if Table.grid is available
+            if hasattr(Table, 'grid'):
+                layout = Table.grid(padding=2)
+                layout.add_column()
+                layout.add_column()
+                layout.add_row(stats_table, size_table)
+                self.console.print(layout)
+            else:
+                # Fallback to printing tables separately
+                self.console.print(stats_table)
+                self.console.print(size_table)
+                
+            self.console.print("\n")
