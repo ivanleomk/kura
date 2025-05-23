@@ -1,6 +1,6 @@
 from asyncio import Semaphore, gather
 from typing import Awaitable, Callable, Union
-
+from instructor.models import KnownModelName
 import instructor
 from tqdm.asyncio import tqdm_asyncio
 from kura.types.summarisation import (
@@ -16,7 +16,7 @@ from kura.types import Conversation
 class SummaryModel(BaseSummaryModel):
     def __init__(
         self,
-        model: str = "gemini/gemini-2.0-flash",
+        model: Union[str, KnownModelName] = "openai/gpt-4o-mini",
         max_concurrent_requests: int = 50,
         extractors: list[
             Callable[
@@ -28,11 +28,12 @@ class SummaryModel(BaseSummaryModel):
         self.extractors = extractors
         self.max_concurrent_requests = max_concurrent_requests
         self.model = model
-        self.semaphore = Semaphore(max_concurrent_requests)
+        self.semaphore = None
 
     async def summarise(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
+        self.semaphore = Semaphore(self.max_concurrent_requests)
         summaries = await tqdm_asyncio.gather(
             *[
                 self.summarise_conversation(conversation)

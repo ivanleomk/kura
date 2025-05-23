@@ -1,4 +1,3 @@
-from kura.dimensionality import HDBUMAP
 from kura.types import Conversation, Cluster, ClusterTreeNode
 from kura.embedding import OpenAIEmbeddingModel
 from kura.summarisation import SummaryModel
@@ -12,7 +11,7 @@ from kura.base_classes import (
     BaseMetaClusterModel,
     BaseDimensionalityReduction,
 )
-from typing import Union
+from typing import Optional, Union
 import os
 from typing import TypeVar
 from pydantic import BaseModel
@@ -45,7 +44,7 @@ class Kura:
         summarisation_model: BaseSummaryModel = SummaryModel(),
         cluster_model: BaseClusterModel = ClusterModel(),
         meta_cluster_model: BaseMetaClusterModel = MetaClusterModel(),
-        dimensionality_reduction: BaseDimensionalityReduction = HDBUMAP(),
+        dimensionality_reduction: Optional[BaseDimensionalityReduction] = None,
         max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
         conversation_checkpoint_name: str = "conversations.json",
@@ -262,6 +261,11 @@ class Kura:
         )
         if checkpoint_items:
             return checkpoint_items
+
+        if self.dimensionality_reduction is None:
+            from kura.dimensionality import HDBUMAP
+
+            self.dimensionality_reduction = HDBUMAP()
 
         dimensionality_reduced_clusters = (
             await self.dimensionality_reduction.reduce_dimensionality(clusters)
