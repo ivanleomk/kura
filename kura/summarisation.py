@@ -4,6 +4,7 @@ from typing import Any, Callable, Optional, Union
 import instructor
 from pydantic import BaseModel, Field
 from tqdm.asyncio import tqdm_asyncio
+import asyncio
 
 from kura.base_classes import BaseSummaryModel
 from kura.types import Conversation, ConversationSummary, ExtractedProperty
@@ -37,7 +38,7 @@ class SummaryModel(BaseSummaryModel):
         concurrent_requests: int = 50,
         extractors: list[
             Callable[
-                [Conversation, dict[str, Semaphore], dict[str, Any]],
+                [Conversation, Semaphore, dict[str, Any]],
                 dict,
             ]
         ] = [],
@@ -51,22 +52,9 @@ class SummaryModel(BaseSummaryModel):
     async def summarise(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
-        # Initialise Semaphores if not already done
-        if not self.sems:
-            sems = {}
-            for (
-                client_name,
-                max_concurrent_requests,
-            ) in self.concurrent_requests.items():
-                sems[client_name] = asyncio.Semaphore(max_concurrent_requests)
-            self.sems = sems
-
-        assert "default" in self.sems, (
-            "You must set a default semaphore for the main client"
-        )
-        assert "default" in self.clients, (
-            "You must set a default client for the main client"
-        )
+        # Initialise Semaphore if not already done
+        if self.sems is None:
+            self.sems = self.semaphore
 
         summaries = await tqdm_asyncio.gather(
             *[
@@ -119,7 +107,7 @@ class SummaryModel(BaseSummaryModel):
 
         It is designed to be used in a pipeline to summarise conversations and extract metadata.
         """
-        client = instructor.from_provider(self.model, use_async=True)
+        client = instructor.from_provider(self.model, async_client=True)
         async with self.semaphore:  # type: ignore
             resp = await client.chat.completions.create(  # type: ignore
                 temperature=0.2, # as per the Clio paper

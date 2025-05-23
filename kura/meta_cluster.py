@@ -62,12 +62,12 @@ class MetaClusterModel(BaseMetaClusterModel):
     def __init__(
         self,
         max_concurrent_requests: int = 50,
-        model="gemini/gemini-2.0-flash",
+        model: str = "openai/gpt-4o-mini",
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         clustering_model: BaseClusteringMethod = KmeansClusteringMethod(12),
     ):
         self.max_concurrent_requests = max_concurrent_requests
-        self.client = instructor.from_provider(model, use_async=True)
+        self.client = instructor.from_provider(model, async_client=True)
         self.embedding_model = embedding_model
         self.clustering_model = clustering_model
         self.model = model
@@ -179,7 +179,6 @@ Based on this information, determine the most appropriate higher-level cluster a
     async def rename_cluster_group(self, clusters: list[Cluster]) -> list[Cluster]:
         async with self.sem:
             resp = await self.client.chat.completions.create(
-                model=self.model,
                 messages=[
                     {
                         "role": "system",

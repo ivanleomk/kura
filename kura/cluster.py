@@ -14,12 +14,12 @@ class ClusterModel(BaseClusterModel):
         clustering_method: BaseClusteringMethod = KmeansClusteringMethod(),
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         max_concurrent_requests: int = 50,
-        model: str = "gemini/gemini-2.0-flash",
+        model: str = "openai/gpt-4o",
     ):
         self.clustering_method = clustering_method
         self.embedding_model = embedding_model
         self.max_concurrent_requests = max_concurrent_requests
-        self.client = instructor.from_provider(model, use_async=True)
+        self.client = instructor.from_provider(model, async_client=True)
 
     def get_contrastive_examples(
         self,
