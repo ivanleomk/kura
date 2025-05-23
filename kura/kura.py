@@ -17,7 +17,7 @@ from typing import Union, Optional, TypeVar
 import os
 from pydantic import BaseModel
 from kura.types.dimensionality import ProjectedCluster
-from kura.types.summarisation import ConversationSummary
+from kura.types import ConversationSummary
 
 # Try to import Rich, fall back gracefully if not available
 try:

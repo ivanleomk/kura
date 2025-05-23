@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from kura.types import ConversationSummary, Cluster
+from kura.summarisation import ConversationSummary
+from kura.types import Cluster
 
 
 class BaseClusterModel(ABC):
