@@ -44,3 +44,6 @@ logs/
 
 # Examples directory
 examples/
+
+# Tutorial checkpoints
+tutorial_checkpoints/
