@@ -2,7 +2,6 @@ from kura.base_classes import BaseDimensionalityReduction, BaseEmbeddingModel
 from kura.types import Cluster, ProjectedCluster
 from kura.embedding import OpenAIEmbeddingModel
 from typing import Union
-from umap import UMAP
 import numpy as np
 import asyncio
 
@@ -26,6 +25,7 @@ class HDBUMAP(BaseDimensionalityReduction):
         self, clusters: list[Cluster]
     ) -> list[ProjectedCluster]:
         # Embed all clusters
+        from umap import UMAP
         sem = asyncio.Semaphore(50)
         cluster_embeddings = await asyncio.gather(
             *[

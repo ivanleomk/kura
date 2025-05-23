@@ -1,8 +1,10 @@
-from kura.types import Conversation, Cluster, ClusterTreeNode
+from kura.dimensionality import HDBUMAP
+from kura.types import Conversation, Cluster
 from kura.embedding import OpenAIEmbeddingModel
 from kura.summarisation import SummaryModel
 from kura.meta_cluster import MetaClusterModel
 from kura.cluster import ClusterModel
+from kura.visualization import ClusterVisualizer
 import shutil
 from kura.base_classes import (
     BaseEmbeddingModel,
@@ -11,23 +13,36 @@ from kura.base_classes import (
     BaseMetaClusterModel,
     BaseDimensionalityReduction,
 )
-from typing import Optional, Union
+from typing import Union, Optional, TypeVar
 import os
-from typing import TypeVar
 from pydantic import BaseModel
 from kura.types.dimensionality import ProjectedCluster
 from kura.types import ConversationSummary
+
+# Try to import Rich, fall back gracefully if not available
+try:
+    from rich.console import Console
+    RICH_AVAILABLE = True
+except ImportError:
+    Console = None
+    RICH_AVAILABLE = False
 
 T = TypeVar("T", bound=BaseModel)
 
 
 class Kura:
     """Main class for the Kura conversation analysis pipeline.
-
+    
     Kura is a tool for analyzing conversation data using a multi-step process of
     summarization, embedding, clustering, meta-clustering, and visualization.
     This class coordinates the entire pipeline and manages checkpointing.
-
+    
+    For cleaner output without progress bars:
+        kura = Kura(disable_progress=True)
+    
+    Or to disable Rich console entirely:
+        kura = Kura(console=None)
+    
     Attributes:
         embedding_model: Model for converting text to vector embeddings
         summarisation_model: Model for generating summaries from conversations
@@ -37,14 +52,14 @@ class Kura:
         max_clusters: Target number of top-level clusters
         checkpoint_dir: Directory for saving intermediate results
     """
-
+    
     def __init__(
         self,
-        embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
-        summarisation_model: BaseSummaryModel = SummaryModel(),
-        cluster_model: BaseClusterModel = ClusterModel(),
-        meta_cluster_model: BaseMetaClusterModel = MetaClusterModel(),
-        dimensionality_reduction: Optional[BaseDimensionalityReduction] = None,
+        embedding_model: BaseEmbeddingModel = None,
+        summarisation_model: BaseSummaryModel = None,
+        cluster_model: BaseClusterModel = None,
+        meta_cluster_model: BaseMetaClusterModel = None,
+        dimensionality_reduction: BaseDimensionalityReduction = HDBUMAP(),
         max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
         conversation_checkpoint_name: str = "conversations.json",
@@ -54,9 +69,12 @@ class Kura:
         dimensionality_checkpoint_name: str = "dimensionality.jsonl",
         disable_checkpoints: bool = False,
         override_checkpoint_dir: bool = False,
+        console: Optional['Console'] = None,
+        disable_progress: bool = False,
+        **kwargs, # For future use
     ):
         """Initialize a new Kura instance with custom or default components.
-
+        
         Args:
             embedding_model: Model to convert text to vector embeddings (default: OpenAIEmbeddingModel)
             summarisation_model: Model to generate summaries from conversations (default: SummaryModel)
@@ -72,44 +90,71 @@ class Kura:
             dimensionality_checkpoint_name: Filename for dimensionality checkpoint (default: "dimensionality.jsonl")
             disable_checkpoints: Whether to disable checkpoint loading/saving (default: False)
             override_checkpoint_dir: Whether to clear existing checkpoint directory (default: False)
+            console: Optional Rich console instance to use for output (default: None, will create if Rich is available)
+            disable_progress: Whether to disable all progress bars for cleaner output (default: False)
         """
-        # Define Models that we're using
-        self.embedding_model = embedding_model
-        self.summarisation_model = summarisation_model
+        # Initialize Rich console if available and not provided
+        if console is None and RICH_AVAILABLE and not disable_progress:
+            self.console = Console()
+        else:
+            self.console = console
+        
+        # Store progress settings
+        self.disable_progress = disable_progress
+        
+        # Initialize models with console
+        if embedding_model is None:
+            self.embedding_model = OpenAIEmbeddingModel()
+        else:
+            self.embedding_model = embedding_model
+            
+        console_to_pass = self.console if not disable_progress else None
+            
+        if summarisation_model is None:
+            self.summarisation_model = SummaryModel(console=console_to_pass, **kwargs)
+        else:
+            self.summarisation_model = summarisation_model
+            
+        if cluster_model is None:
+            self.cluster_model = ClusterModel(console=console_to_pass, **kwargs)
+        else:
+            self.cluster_model = cluster_model
+            
+        if meta_cluster_model is None:
+            self.meta_cluster_model = MetaClusterModel(console=console_to_pass, **kwargs)
+        else:
+            self.meta_cluster_model = meta_cluster_model
+            
         self.max_clusters = max_clusters
-        self.cluster_model = cluster_model
-        self.meta_cluster_model = meta_cluster_model
         self.dimensionality_reduction = dimensionality_reduction
 
         # Define Checkpoints
-        self.checkpoint_dir = os.path.join(checkpoint_dir)
-        self.conversation_checkpoint_name = os.path.join(
-            self.checkpoint_dir, conversation_checkpoint_name
-        )
-        self.cluster_checkpoint_name = os.path.join(
-            self.checkpoint_dir, cluster_checkpoint_name
-        )
-        self.meta_cluster_checkpoint_name = os.path.join(
-            self.checkpoint_dir, meta_cluster_checkpoint_name
-        )
-        self.dimensionality_checkpoint_name = os.path.join(
-            self.checkpoint_dir, dimensionality_checkpoint_name
-        )
-        self.summary_checkpoint_name = os.path.join(
-            self.checkpoint_dir, summary_checkpoint_name
-        )
+        self.checkpoint_dir = checkpoint_dir
+        
+        # Helper to construct checkpoint paths
+        def _checkpoint_path(filename: str) -> str:
+            return os.path.join(self.checkpoint_dir, filename)
+        
+        self.conversation_checkpoint_name = _checkpoint_path(conversation_checkpoint_name)
+        self.cluster_checkpoint_name = _checkpoint_path(cluster_checkpoint_name)
+        self.meta_cluster_checkpoint_name = _checkpoint_path(meta_cluster_checkpoint_name)
+        self.dimensionality_checkpoint_name = _checkpoint_path(dimensionality_checkpoint_name)
+        self.summary_checkpoint_name = _checkpoint_path(summary_checkpoint_name)
         self.disable_checkpoints = disable_checkpoints
         self.override_checkpoint_dir = override_checkpoint_dir
+        
+        # Initialize visualizer
+        self._visualizer = None
 
     def load_checkpoint(
         self, checkpoint_path: str, response_model: type[T]
     ) -> Union[list[T], None]:
         """Load data from a checkpoint file if it exists.
-
+        
         Args:
             checkpoint_path: Path to the checkpoint file
             response_model: Pydantic model class for deserializing the data
-
+            
         Returns:
             List of model instances if checkpoint exists, None otherwise
         """
@@ -124,7 +169,7 @@ class Kura:
 
     def save_checkpoint(self, checkpoint_path: str, data: list[T]) -> None:
         """Save data to a checkpoint file.
-
+        
         Args:
             checkpoint_path: Path to the checkpoint file
             data: List of model instances to save
@@ -136,7 +181,7 @@ class Kura:
 
     def setup_checkpoint_dir(self):
         """Set up the checkpoint directory.
-
+        
         Creates the checkpoint directory if it doesn't exist.
         If override_checkpoint_dir is True, removes and recreates the directory.
         """
@@ -153,13 +198,13 @@ class Kura:
 
     async def reduce_clusters(self, clusters: list[Cluster]) -> list[Cluster]:
         """Reduce clusters into a hierarchical structure.
-
+        
         Iteratively combines similar clusters until the number of root clusters
         is less than or equal to max_clusters.
-
+        
         Args:
             clusters: List of initial clusters
-
+            
         Returns:
             List of clusters with hierarchical structure
         """
@@ -198,13 +243,13 @@ class Kura:
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
         """Generate summaries for a list of conversations.
-
+        
         Uses the summarisation_model to generate summaries for each conversation.
         Loads from checkpoint if available.
-
+        
         Args:
             conversations: List of conversations to summarize
-
+            
         Returns:
             List of conversation summaries
         """
@@ -218,17 +263,15 @@ class Kura:
         self.save_checkpoint(self.summary_checkpoint_name, summaries)
         return summaries
 
-    async def generate_base_clusters(
-        self, summaries: list[ConversationSummary]
-    ) -> list[Cluster]:
+    async def generate_base_clusters(self, summaries: list[ConversationSummary]) -> list[Cluster]:
         """Generate base clusters from summaries.
-
+        
         Uses the cluster_model to group similar summaries into clusters.
         Loads from checkpoint if available.
-
+        
         Args:
             summaries: List of conversation summaries
-
+            
         Returns:
             List of base clusters
         """
@@ -246,13 +289,13 @@ class Kura:
         self, clusters: list[Cluster]
     ) -> list[ProjectedCluster]:
         """Reduce dimensions of clusters for visualization.
-
+        
         Uses dimensionality_reduction to project clusters to 2D space.
         Loads from checkpoint if available.
-
+        
         Args:
             clusters: List of clusters to project
-
+            
         Returns:
             List of projected clusters with 2D coordinates
         """
@@ -261,11 +304,6 @@ class Kura:
         )
         if checkpoint_items:
             return checkpoint_items
-
-        if self.dimensionality_reduction is None:
-            from kura.dimensionality import HDBUMAP
-
-            self.dimensionality_reduction = HDBUMAP()
 
         dimensionality_reduced_clusters = (
             await self.dimensionality_reduction.reduce_dimensionality(clusters)
@@ -276,11 +314,9 @@ class Kura:
         )
         return dimensionality_reduced_clusters
 
-    async def cluster_conversations(
-        self, conversations: list[Conversation]
-    ) -> list[ProjectedCluster]:
+    async def cluster_conversations(self, conversations: list[Conversation]) -> list[ProjectedCluster]:
         """Run the full clustering pipeline on a list of conversations.
-
+        
         This is the main method that orchestrates the entire Kura pipeline:
         1. Set up checkpoints directory
         2. Save raw conversations
@@ -288,10 +324,10 @@ class Kura:
         4. Create base clusters
         5. Create hierarchical meta-clusters
         6. Project clusters to 2D for visualization
-
+        
         Args:
             conversations: List of conversations to process
-
+            
         Returns:
             List of projected clusters with 2D coordinates
         """
@@ -312,115 +348,30 @@ class Kura:
 
         return dimensionality_reduced_clusters
 
-    def _build_tree_structure(
-        self,
-        node: ClusterTreeNode,
-        node_id_to_cluster: dict[str, ClusterTreeNode],
-        level: int = 0,
-        is_last: bool = True,
-        prefix: str = "",
-    ):
-        """Build a text representation of the hierarchical cluster tree.
-
-        This is a recursive helper method used by visualise_clusters().
-
-        Args:
-            node: Current tree node
-            node_id_to_cluster: Dictionary mapping node IDs to nodes
-            level: Current depth in the tree (for indentation)
-            is_last: Whether this is the last child of its parent
-            prefix: Current line prefix for tree structure
-
-        Returns:
-            String representation of the tree structure
-        """
-        # Current line prefix (used for tree visualization symbols)
-        current_prefix = prefix
-
-        # Add the appropriate connector based on whether this is the last child
-        if level > 0:
-            if is_last:
-                current_prefix += "╚══ "
-            else:
-                current_prefix += "╠══ "
-
-        # Print the current node
-        result = (
-            current_prefix + node.name + " (" + str(node.count) + " conversations)\n"
-        )
-
-        # Calculate the prefix for children (continue vertical lines for non-last children)
-        child_prefix = prefix
-        if level > 0:
-            if is_last:
-                child_prefix += (
-                    "    "  # No vertical line needed for last child's children
-                )
-            else:
-                child_prefix += (
-                    "║   "  # Continue vertical line for non-last child's children
-                )
-
-        # Process children
-        children = node.children
-        for i, child_id in enumerate(children):
-            child = node_id_to_cluster[child_id]
-            is_last_child = i == len(children) - 1
-            result += self._build_tree_structure(
-                child, node_id_to_cluster, level + 1, is_last_child, child_prefix
-            )
-
-        return result
+    @property
+    def visualizer(self) -> ClusterVisualizer:
+        """Get or create the cluster visualizer."""
+        if self._visualizer is None:
+            self._visualizer = ClusterVisualizer(self)
+        return self._visualizer
 
     def visualise_clusters(self):
         """Print a hierarchical visualization of clusters to the terminal.
-
-        This method loads clusters from the meta_cluster_checkpoint file,
-        builds a tree representation, and prints it to the console.
-        The visualization shows the hierarchical relationship between clusters
-        with indentation and tree structure symbols.
-
-        Example output:
-        ╠══ Compare and improve Flutter and React state management (45 conversations)
-        ║   ╚══ Improve and compare Flutter and React state management (32 conversations)
-        ║       ╠══ Improve React TypeScript application (15 conversations)
-        ║       ╚══ Compare and select Flutter state management solutions (17 conversations)
-        ╠══ Optimize blog posts for SEO and improved user engagement (28 conversations)
+        
+        Delegates to the ClusterVisualizer for the actual visualization.
         """
-        with open(self.meta_cluster_checkpoint_name) as f:
-            clusters = [Cluster.model_validate_json(line) for line in f]
-
-        node_id_to_cluster = {}
-
-        for node in clusters:
-            node_id_to_cluster[node.id] = ClusterTreeNode(
-                id=node.id,
-                name=node.name,
-                description=node.description,
-                count=node.count,  # pyright: ignore
-                children=[],
-            )
-
-        for node in clusters:
-            if node.parent_id:
-                node_id_to_cluster[node.parent_id].children.append(node.id)
-
-        # Find root nodes and build the tree
-        tree_output = ""
-        root_nodes = [
-            node_id_to_cluster[node.id] for node in clusters if not node.parent_id
-        ]
-
-        fake_root = ClusterTreeNode(
-            id="root",
-            name="Clusters",
-            description="All clusters",
-            count=sum(node.count for node in root_nodes),
-            children=[node.id for node in root_nodes],
-        )
-
-        tree_output += self._build_tree_structure(
-            fake_root, node_id_to_cluster, 0, False
-        )
-
-        print(tree_output)
+        self.visualizer.visualise_clusters()
+    
+    def visualise_clusters_enhanced(self):
+        """Print an enhanced hierarchical visualization of clusters.
+        
+        Delegates to the ClusterVisualizer for the actual visualization.
+        """
+        self.visualizer.visualise_clusters_enhanced()
+    
+    def visualise_clusters_rich(self):
+        """Print a rich-formatted hierarchical visualization using Rich library.
+        
+        Delegates to the ClusterVisualizer for the actual visualization.
+        """
+        self.visualizer.visualise_clusters_rich()

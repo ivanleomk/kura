@@ -1,12 +1,17 @@
 from kura.base_classes import BaseClusterModel, BaseClusteringMethod, BaseEmbeddingModel
 from kura.embedding import OpenAIEmbeddingModel
 from kura.k_means import KmeansClusteringMethod
-from kura.summarisation import ConversationSummary
-from kura.types import Cluster, GeneratedCluster
+from kura.types import ConversationSummary, Cluster, GeneratedCluster
 from tqdm.asyncio import tqdm_asyncio
 import numpy as np
 from asyncio import Semaphore
 import instructor
+import asyncio
+
+# Rich imports handled by Kura base class
+from typing import TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+    from rich.console import Console
 
 
 class ClusterModel(BaseClusterModel):
@@ -16,11 +21,14 @@ class ClusterModel(BaseClusterModel):
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         max_concurrent_requests: int = 50,
         model: str = "openai/gpt-4o",
+        console: Optional['Console'] = None,
+        **kwargs, # For future use
     ):
         self.clustering_method = clustering_method
         self.embedding_model = embedding_model
         self.max_concurrent_requests = max_concurrent_requests
         self.client = instructor.from_provider(model, async_client=True)
+        self.console = console
 
     def get_contrastive_examples(
         self,
@@ -87,13 +95,13 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                     """,
                     },
                     {
-                        "role": "user",
-                        "content": "The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job.'",
+                        "role": "user", 
+                        "content": "The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job.'"
                     },
                     {
                         "role": "assistant",
-                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name: <summary>",
-                    },
+                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name:"
+                    }
                 ],
                 response_model=GeneratedCluster,
                 context={
@@ -113,8 +121,8 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
         self, summaries: list[ConversationSummary]
     ) -> list[Cluster]:
         sem = Semaphore(self.max_concurrent_requests)
-        embeddings: list[list[float]] = await tqdm_asyncio.gather(
-            *[
+        embeddings: list[list[float]] = await self._gather_with_progress(
+            [
                 self.embedding_model.embed(text=item.summary, sem=sem)
                 for item in summaries
             ],
@@ -129,8 +137,8 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                 for item, embedding in zip(summaries, embeddings)
             ]
         )
-        clusters: list[Cluster] = await tqdm_asyncio.gather(
-            *[
+        clusters: list[Cluster] = await self._gather_with_progress(
+            [
                 self.generate_cluster(
                     summaries,
                     self.get_contrastive_examples(
@@ -141,6 +149,104 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                 for cluster_id, summaries in cluster_id_to_summaries.items()
             ],
             desc="Generating Base Clusters",
+            show_preview=True,
         )
 
         return clusters
+
+    async def _gather_with_progress(self, tasks, desc: str = "Processing", disable: bool = False, show_preview: bool = False):
+        """Helper method to run async gather with Rich progress bar if available, otherwise tqdm."""
+        if self.console and not disable:
+            try:
+                from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeRemainingColumn
+                from rich.live import Live
+                from rich.layout import Layout
+                from rich.panel import Panel
+                from rich.text import Text
+                from rich.errors import LiveError
+            except ImportError:
+                return await tqdm_asyncio.gather(*tasks, desc=desc, disable=disable)
+                
+            if show_preview:
+                # Use Live display with progress and cluster list
+                layout = Layout()
+                layout.split_column(
+                    Layout(name="progress", size=3),
+                    Layout(name="clusters")
+                )
+                
+                all_clusters = []
+                
+                # Create progress with cleaner display
+                progress = Progress(
+                    SpinnerColumn(),
+                    TextColumn("[progress.description]{task.description}"),
+                    BarColumn(),
+                    TaskProgressColumn(),
+                    TimeRemainingColumn(),
+                    console=self.console
+                )
+                task_id = progress.add_task(f"[cyan]{desc}...", total=len(tasks))
+                layout["progress"].update(progress)
+                
+                try:
+                    with Live(layout, console=self.console, refresh_per_second=4) as live:
+                        completed_tasks = []
+                        for i, task in enumerate(asyncio.as_completed(tasks)):
+                            result = await task
+                            completed_tasks.append(result)
+                            progress.update(task_id, completed=i + 1)
+                            
+                            # Add to cluster list if it's a Cluster
+                            if hasattr(result, 'name') and hasattr(result, 'description'):
+                                all_clusters.append(result)
+                                
+                                # Sort clusters by conversation count (largest first)
+                                sorted_clusters = sorted(all_clusters, key=lambda x: len(x.chat_ids), reverse=True)
+                                
+                                # Create formatted list display
+                                cluster_text = Text()
+                                for j, cluster in enumerate(sorted_clusters):
+                                    cluster_text.append(f"#{j+1} ", style="bold cyan")
+                                    cluster_text.append(f"{cluster.name}\n", style="bold white")
+                                    cluster_text.append(f"    {cluster.description[:120]}...\n", style="dim white")
+                                    cluster_text.append(f"    💬 {len(cluster.chat_ids)} conversations\n\n", style="dim cyan")
+                                
+                                layout["clusters"].update(Panel(
+                                    cluster_text,
+                                    title=f"[green]Generated Clusters ({len(all_clusters)}) - Sorted by Size",
+                                    border_style="green"
+                                ))
+                        
+                        return completed_tasks
+                except LiveError:
+                    # If Rich Live fails, run silently
+                    return await asyncio.gather(*tasks)
+            else:
+                # Regular progress bar without preview
+                try:
+                    progress = Progress(
+                        SpinnerColumn(),
+                        TextColumn("[progress.description]{task.description}"),
+                        BarColumn(),
+                        TaskProgressColumn(),
+                        TimeRemainingColumn(),
+                        console=self.console
+                    )
+                    
+                    with progress:
+                        task_id = progress.add_task(f"[cyan]{desc}...", total=len(tasks))
+                        
+                        completed_tasks = []
+                        for i, task in enumerate(asyncio.as_completed(tasks)):
+                            result = await task
+                            completed_tasks.append(result)
+                            progress.update(task_id, completed=i + 1)
+                        
+                        return completed_tasks
+                except (ImportError, LiveError) as e:
+                    # Rich not available or Live error, run silently
+                    return await asyncio.gather(*tasks)
+        else:
+            # No console, run silently
+            return await asyncio.gather(*tasks)
