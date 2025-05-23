@@ -100,7 +100,7 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                     },
                     {
                         "role": "assistant",
-                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name: <summary>"
+                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name:"
                     }
                 ],
                 response_model=GeneratedCluster,
