@@ -5,12 +5,12 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 from sqlmodel import Session, select, func
 from sqlalchemy.orm import selectinload
 
-from ..models import (
+from kura.explorer.backend.models import (
     ClusterResponse, ClusterDetailResponse, ClusterTreeNode,
     PaginatedResponse, SummaryResponse, ConversationResponse
 )
-from ...api import KuraExplorer
-from ...db.models import ClusterDB, SummaryDB, ClusterConversationLink, ConversationDB
+from kura.explorer.api import KuraExplorer
+from kura.explorer.db.models import ClusterDB, SummaryDB, ClusterConversationLink, ConversationDB
 
 
 router = APIRouter()
@@ -18,7 +18,7 @@ router = APIRouter()
 
 def get_explorer() -> KuraExplorer:
     """Dependency to get explorer instance."""
-    from ..main import explorer
+    from kura.explorer.backend.main import explorer
     if not explorer:
         raise HTTPException(status_code=503, detail="Explorer not initialized")
     return explorer

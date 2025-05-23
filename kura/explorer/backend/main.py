@@ -12,8 +12,8 @@ from typing import Optional
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from .routers import clusters, conversations, insights, search
-from ..api import KuraExplorer
+from routers import clusters, conversations, insights, search
+from kura.explorer.api import KuraExplorer
 
 
 # Global explorer instance
@@ -56,7 +56,7 @@ app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 
 
-from .models import StatsResponse
+from models import StatsResponse
 
 
 class HealthResponse(BaseModel):

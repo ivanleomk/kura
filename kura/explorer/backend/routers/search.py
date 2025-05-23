@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, HTTPException, Query, Depends
 
-from ..models import SearchResult, ConversationResponse, SummaryResponse
-from ...api import KuraExplorer
+from kura.explorer.backend.models import SearchResult, ConversationResponse, SummaryResponse
+from kura.explorer.api import KuraExplorer
 
 
 router = APIRouter()
@@ -11,7 +11,7 @@ router = APIRouter()
 
 def get_explorer() -> KuraExplorer:
     """Dependency to get explorer instance."""
-    from ..main import explorer
+    from kura.explorer.backend.main import explorer
     if not explorer:
         raise HTTPException(status_code=503, detail="Explorer not initialized")
     return explorer
