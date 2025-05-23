@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ChevronDown, Network, AlertTriangle } from 'lucide-react';
-import { ClusterTreeNode } from '../lib/api';
+import type { ClusterTreeNode } from '../lib/api';
 import { cn } from '../lib/utils';
 import { Button } from './ui/button';
 

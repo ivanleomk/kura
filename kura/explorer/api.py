@@ -139,7 +139,9 @@ class KuraExplorer:
         """Get cluster details with conversations and children."""
         with Session(self.engine) as session:
             cluster = session.exec(
-                select(ClusterDB).where(ClusterDB.id == cluster_id)
+                select(ClusterDB)
+                .options(selectinload(ClusterDB.conversations))
+                .where(ClusterDB.id == cluster_id)
             ).first()
             
             if not cluster:

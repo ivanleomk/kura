@@ -76,7 +76,7 @@ class ClusterDetailResponse(BaseModel):
     languages: List[str] = Field(default_factory=list)
     parent: Optional[ClusterResponse] = None
     children: List[ClusterResponse] = Field(default_factory=list)
-    sample_conversations: List[ConversationResponse] = Field(default_factory=list)
+    conversations: List[ConversationResponse] = Field(default_factory=list)
     hierarchy: List[ClusterResponse] = Field(default_factory=list)
 
 

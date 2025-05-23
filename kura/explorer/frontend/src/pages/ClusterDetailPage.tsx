@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, MessageSquare, TrendingUp, Globe, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, MessageSquare, TrendingUp, Globe, AlertTriangle, Calendar } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export default function ClusterDetailPage() {
   const { clusterId } = useParams<{ clusterId: string }>();
@@ -116,54 +117,56 @@ export default function ClusterDetailPage() {
         </Card>
       )}
 
-      {/* Top Tasks */}
-      {summary?.top_tasks && summary.top_tasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Tasks</CardTitle>
-            <CardDescription>Most common tasks in this cluster</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {summary.top_tasks.map((task: any, index: number) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span>{task.task}</span>
-                  <span className="text-muted-foreground">{task.count} occurrences</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Sample Conversations */}
+      {/* All Conversations */}
       {cluster.conversations && cluster.conversations.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Sample Conversations</CardTitle>
-            <CardDescription>Recent conversations in this cluster</CardDescription>
+            <CardTitle>Conversations ({cluster.conversations.length})</CardTitle>
+            <CardDescription>All conversations in this cluster</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {cluster.conversations.slice(0, 5).map((conv: any) => (
+            <div className="space-y-4 max-h-[800px] overflow-y-auto">
+              {cluster.conversations.map((conv: any) => (
                 <Link
-                  key={conv.chat_id}
-                  to={`/conversations/${conv.chat_id}`}
-                  className="block p-3 rounded-lg border hover:bg-accent transition-colors"
+                  key={conv.id}
+                  to={`/conversations/${conv.id}`}
+                  className="block p-4 rounded-lg border hover:bg-accent transition-colors"
                 >
-                  <p className="font-medium">{conv.summary?.title || 'Untitled'}</p>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {conv.summary?.summary || 'No summary available'}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="font-medium text-lg">{conv.summary?.title || 'Untitled Conversation'}</p>
+                    <p className="text-sm text-muted-foreground line-clamp-3">
+                      {conv.summary?.summary || 'No summary available'}
+                    </p>
+                    
+                    <div className="flex items-center gap-4 text-sm">
+                      {conv.summary?.frustration && (
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className={cn(
+                            "h-4 w-4",
+                            conv.summary.frustration <= 2 ? "text-green-500" :
+                            conv.summary.frustration <= 3 ? "text-blue-500" :
+                            conv.summary.frustration <= 4 ? "text-orange-500" :
+                            "text-red-500"
+                          )} />
+                          <span>Frustration: {conv.summary.frustration}/5</span>
+                        </div>
+                      )}
+                      
+                      {conv.summary?.language && (
+                        <div className="flex items-center gap-1">
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <span className="capitalize">{conv.summary.language}</span>
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        <span>{new Date(conv.created_at).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
                 </Link>
               ))}
-            </div>
-            <div className="mt-4 pt-4 border-t">
-              <Link to={`/conversations?cluster_id=${clusterId}`}>
-                <Button variant="outline" className="w-full">
-                  View All Conversations
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>

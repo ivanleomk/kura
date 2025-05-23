@@ -6,7 +6,7 @@ from typing import Dict, List, Any
 from datetime import datetime
 from pathlib import Path
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 from tqdm import tqdm
 
 from .models import (
@@ -89,6 +89,27 @@ class CheckpointLoader:
         with open(summary_file, 'r') as f:
             for line in tqdm(f, desc="Loading summaries"):
                 summary_data = ConversationSummary.model_validate_json(line)
+                
+                # Create a stub conversation record if it doesn't exist
+                existing_conv = self.session.exec(
+                    select(ConversationDB).where(ConversationDB.chat_id == summary_data.chat_id)
+                ).first()
+                
+                if not existing_conv:
+                    # Create a minimal conversation record from summary data
+                    # Use a default created_at if not available
+                    created_at = getattr(summary_data, 'created_at', None)
+                    if not created_at:
+                        # Try to get from metadata or use epoch
+                        created_at = datetime.fromtimestamp(0)  # Default to epoch
+                    
+                    conv_db = ConversationDB(
+                        chat_id=summary_data.chat_id,
+                        created_at=created_at,
+                        metadata_json={},
+                        message_count=0  # We don't have message data
+                    )
+                    self.session.add(conv_db)
                 
                 summary_db = SummaryDB(
                     chat_id=summary_data.chat_id,
