@@ -1,8 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from thefuzz import fuzz
 from kura.meta_cluster import ClusterLabel
-from kura.types.cluster import Cluster
 
 
 def test_cluster_label_exact_match():

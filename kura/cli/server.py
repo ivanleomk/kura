@@ -1,21 +1,6 @@
 from fastapi import FastAPI, staticfiles
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from pathlib import Path
-from kura import Kura
-from kura.types import ProjectedCluster, Conversation
-from typing import Optional
-from kura.cli.visualisation import (
-    generate_cumulative_chart_data,
-    generate_messages_per_chat_data,
-    generate_messages_per_week_data,
-    generate_new_chats_per_week_data,
-)
-import json
-import os
-
-from kura.types.summarisation import ConversationSummary
-
 
 api = FastAPI()
 

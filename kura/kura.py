@@ -17,18 +17,18 @@ import os
 from typing import TypeVar
 from pydantic import BaseModel
 from kura.types.dimensionality import ProjectedCluster
-from kura.types.summarisation import ConversationSummary
+from kura.types import ConversationSummary
 
 T = TypeVar("T", bound=BaseModel)
 
 
 class Kura:
     """Main class for the Kura conversation analysis pipeline.
-    
+
     Kura is a tool for analyzing conversation data using a multi-step process of
     summarization, embedding, clustering, meta-clustering, and visualization.
     This class coordinates the entire pipeline and manages checkpointing.
-    
+
     Attributes:
         embedding_model: Model for converting text to vector embeddings
         summarisation_model: Model for generating summaries from conversations
@@ -38,7 +38,7 @@ class Kura:
         max_clusters: Target number of top-level clusters
         checkpoint_dir: Directory for saving intermediate results
     """
-    
+
     def __init__(
         self,
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
@@ -57,7 +57,7 @@ class Kura:
         override_checkpoint_dir: bool = False,
     ):
         """Initialize a new Kura instance with custom or default components.
-        
+
         Args:
             embedding_model: Model to convert text to vector embeddings (default: OpenAIEmbeddingModel)
             summarisation_model: Model to generate summaries from conversations (default: SummaryModel)
@@ -106,11 +106,11 @@ class Kura:
         self, checkpoint_path: str, response_model: type[T]
     ) -> Union[list[T], None]:
         """Load data from a checkpoint file if it exists.
-        
+
         Args:
             checkpoint_path: Path to the checkpoint file
             response_model: Pydantic model class for deserializing the data
-            
+
         Returns:
             List of model instances if checkpoint exists, None otherwise
         """
@@ -125,7 +125,7 @@ class Kura:
 
     def save_checkpoint(self, checkpoint_path: str, data: list[T]) -> None:
         """Save data to a checkpoint file.
-        
+
         Args:
             checkpoint_path: Path to the checkpoint file
             data: List of model instances to save
@@ -137,7 +137,7 @@ class Kura:
 
     def setup_checkpoint_dir(self):
         """Set up the checkpoint directory.
-        
+
         Creates the checkpoint directory if it doesn't exist.
         If override_checkpoint_dir is True, removes and recreates the directory.
         """
@@ -154,13 +154,13 @@ class Kura:
 
     async def reduce_clusters(self, clusters: list[Cluster]) -> list[Cluster]:
         """Reduce clusters into a hierarchical structure.
-        
+
         Iteratively combines similar clusters until the number of root clusters
         is less than or equal to max_clusters.
-        
+
         Args:
             clusters: List of initial clusters
-            
+
         Returns:
             List of clusters with hierarchical structure
         """
@@ -199,13 +199,13 @@ class Kura:
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
         """Generate summaries for a list of conversations.
-        
+
         Uses the summarisation_model to generate summaries for each conversation.
         Loads from checkpoint if available.
-        
+
         Args:
             conversations: List of conversations to summarize
-            
+
         Returns:
             List of conversation summaries
         """
@@ -219,15 +219,17 @@ class Kura:
         self.save_checkpoint(self.summary_checkpoint_name, summaries)
         return summaries
 
-    async def generate_base_clusters(self, summaries: list[ConversationSummary]) -> list[Cluster]:
+    async def generate_base_clusters(
+        self, summaries: list[ConversationSummary]
+    ) -> list[Cluster]:
         """Generate base clusters from summaries.
-        
+
         Uses the cluster_model to group similar summaries into clusters.
         Loads from checkpoint if available.
-        
+
         Args:
             summaries: List of conversation summaries
-            
+
         Returns:
             List of base clusters
         """
@@ -245,13 +247,13 @@ class Kura:
         self, clusters: list[Cluster]
     ) -> list[ProjectedCluster]:
         """Reduce dimensions of clusters for visualization.
-        
+
         Uses dimensionality_reduction to project clusters to 2D space.
         Loads from checkpoint if available.
-        
+
         Args:
             clusters: List of clusters to project
-            
+
         Returns:
             List of projected clusters with 2D coordinates
         """
@@ -270,9 +272,11 @@ class Kura:
         )
         return dimensionality_reduced_clusters
 
-    async def cluster_conversations(self, conversations: list[Conversation]) -> list[ProjectedCluster]:
+    async def cluster_conversations(
+        self, conversations: list[Conversation]
+    ) -> list[ProjectedCluster]:
         """Run the full clustering pipeline on a list of conversations.
-        
+
         This is the main method that orchestrates the entire Kura pipeline:
         1. Set up checkpoints directory
         2. Save raw conversations
@@ -280,10 +284,10 @@ class Kura:
         4. Create base clusters
         5. Create hierarchical meta-clusters
         6. Project clusters to 2D for visualization
-        
+
         Args:
             conversations: List of conversations to process
-            
+
         Returns:
             List of projected clusters with 2D coordinates
         """
@@ -313,16 +317,16 @@ class Kura:
         prefix: str = "",
     ):
         """Build a text representation of the hierarchical cluster tree.
-        
+
         This is a recursive helper method used by visualise_clusters().
-        
+
         Args:
             node: Current tree node
             node_id_to_cluster: Dictionary mapping node IDs to nodes
             level: Current depth in the tree (for indentation)
             is_last: Whether this is the last child of its parent
             prefix: Current line prefix for tree structure
-            
+
         Returns:
             String representation of the tree structure
         """
@@ -345,9 +349,13 @@ class Kura:
         child_prefix = prefix
         if level > 0:
             if is_last:
-                child_prefix += "    "  # No vertical line needed for last child's children
+                child_prefix += (
+                    "    "  # No vertical line needed for last child's children
+                )
             else:
-                child_prefix += "║   "  # Continue vertical line for non-last child's children
+                child_prefix += (
+                    "║   "  # Continue vertical line for non-last child's children
+                )
 
         # Process children
         children = node.children
@@ -362,12 +370,12 @@ class Kura:
 
     def visualise_clusters(self):
         """Print a hierarchical visualization of clusters to the terminal.
-        
+
         This method loads clusters from the meta_cluster_checkpoint file,
         builds a tree representation, and prints it to the console.
         The visualization shows the hierarchical relationship between clusters
         with indentation and tree structure symbols.
-        
+
         Example output:
         ╠══ Compare and improve Flutter and React state management (45 conversations)
         ║   ╚══ Improve and compare Flutter and React state management (32 conversations)

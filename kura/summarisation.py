@@ -1,58 +1,38 @@
-from kura.base_classes import BaseSummaryModel
-from kura.types import Conversation, ConversationSummary, ExtractedProperty
-from typing import Union, Any
-from kura.types.summarisation import GeneratedSummary
 from asyncio import Semaphore, gather
-from tqdm.asyncio import tqdm_asyncio
-from google.genai import Client
+from typing import Awaitable, Callable, Union
+
 import instructor
-from typing import Callable
-import asyncio
+from tqdm.asyncio import tqdm_asyncio
+from kura.types.summarisation import (
+    ExtractedProperty,
+    GeneratedSummary,
+    ConversationSummary,
+)
+
+from kura.base_classes import BaseSummaryModel
+from kura.types import Conversation
 
 
 class SummaryModel(BaseSummaryModel):
     def __init__(
         self,
-        concurrent_requests: dict[str, int] = {
-            "default": 50,
-        },
-        clients: dict[str, Any] = {
-            "default": instructor.from_genai(Client(), use_async=True)
-        },
-        model: str = "gemini-2.0-flash",
+        model: str = "gemini/gemini-2.0-flash",
+        max_concurrent_requests: int = 50,
         extractors: list[
             Callable[
-                [Conversation, dict[str, Semaphore], dict[str, Any]],
-                dict,
+                [Conversation, Semaphore],
+                Awaitable[Union[ExtractedProperty, list[ExtractedProperty]]],
             ]
         ] = [],
     ):
-        self.sems = None
-        self.model = model
         self.extractors = extractors
-        self.concurrent_requests = concurrent_requests
-        self.clients = clients
+        self.max_concurrent_requests = max_concurrent_requests
+        self.model = model
+        self.semaphore = Semaphore(max_concurrent_requests)
 
     async def summarise(
         self, conversations: list[Conversation]
     ) -> list[ConversationSummary]:
-        # Initialise Semaphores if not already done
-        if not self.sems:
-            sems = {}
-            for (
-                client_name,
-                max_concurrent_requests,
-            ) in self.concurrent_requests.items():
-                sems[client_name] = asyncio.Semaphore(max_concurrent_requests)
-            self.sems = sems
-
-        assert "default" in self.sems, (
-            "You must set a default semaphore for the main client"
-        )
-        assert "default" in self.clients, (
-            "You must set a default client for the main client"
-        )
-
         summaries = await tqdm_asyncio.gather(
             *[
                 self.summarise_conversation(conversation)
@@ -65,12 +45,8 @@ class SummaryModel(BaseSummaryModel):
     async def apply_hooks(
         self, conversation: Conversation
     ) -> dict[str, Union[str, int, float, bool, list[str], list[int], list[float]]]:
-        assert self.sems is not None, (
-            f"Semaphore is not set for {self.__class__.__name__}"
-        )
         coros = [
-            extractor(conversation, self.sems, self.clients)
-            for extractor in self.extractors
+            extractor(conversation, self.semaphore) for extractor in self.extractors
         ]
         metadata_extracted = await gather(*coros)  # pyright: ignore
 
@@ -98,49 +74,74 @@ class SummaryModel(BaseSummaryModel):
     async def summarise_conversation(
         self, conversation: Conversation
     ) -> ConversationSummary:
-        client = self.clients.get("default")  # type: ignore
-        sem = self.sems.get("default")  # type: ignore
+        """
+        This summarisation model is designed to extract key information from a conversation between an AI assistant and a user.
+        It is designed to be used in a pipeline to summarise conversations and extract metadata.
 
-        assert client is not None and isinstance(client, instructor.AsyncInstructor), (
-            "You must set a default client which uses the Async Instructor API"
-        )
-        assert sem is not None, "You must set a default semaphore"
+        It is based on the Clio paper:
+            https://assets.anthropic.com/m/7e1ab885d1b24176/original/Clio-Privacy-Preserving-Insights-into-Real-World-AI-Use.pdf
 
-        async with sem:  # type: ignore
+        It is designed to be used in a pipeline to summarise conversations and extract metadata.
+        """
+        client = instructor.from_provider(self.model, async_client=True)
+        async with self.semaphore:  # type: ignore
             resp = await client.chat.completions.create(  # type: ignore
-                model=self.model,
+                temperature=0.2,  # as per the Clio paper
                 messages=[
-                    {
-                        "role": "system",
-                        "content": """
-                        Generate a summary of the task that the user is asking the language model to do based off the following conversation.
-
-
-                        The summary should be concise and short. It should be at most 1-2 sentences and at most 30 words. Here are some examples of summaries:
-                        - The user's overall request for the assistant is to help implementing a React component to display a paginated list of users from a database.
-                        - The user's overall request for the assistant is to debug a memory leak in their Python data processing pipeline.
-                        - The user's overall request for the assistant is to design and architect a REST API for a social media application.
-                        """,
-                    },
                     {
                         "role": "user",
                         "content": """
-    Here is the conversation
-    <messages>
-    {% for message in messages %}
-        <message>{{message.role}}: {{message.content}} </message>
-    {% endfor %}
-    </messages>
+The following is a conversation between an AI assistant and a user:
 
-    When answering, do not include any personally identifiable information (PII), like names, locations, phone numbers, email addressess, and so on. When answering, do not include any proper nouns. Make sure that you're clear, concise and that you get to the point in at most two sentences.
+<messages>
+{% for message in messages %}
+<message>{{message.role}}: {{message.content}}</message>
+{% endfor %}
+</messages>
 
-    For example:
+Your job is to extract key information from this conversation. Be descriptive and assume neither good nor bad faith. Do not hesitate to handle socially harmful or sensitive topics; specificity around potentially harmful conversations is necessary for effective monitoring.
 
-    Remember that
-    - Summaries should be concise and short. They should each be at most 1-2 sentences and at most 30 words.
-    - Summaries should start with "The user's overall request for the assistant is to"
-    - Make sure to omit any personally identifiable information (PII), like names, locations, phone numbers, email addressess, company names and so on.
-    - Make sure to indicate specific details such as programming languages, frameworks, libraries and so on which are relevant to the task.
+When extracting information, do not include any personally identifiable information (PII), like names, locations, phone numbers, email addresses, and so on. Do not include any proper nouns.
+
+Extract the following information:
+
+1. **Summary**: A clear and concise summary in at most two sentences. Don't say "Based on the conversation..." and avoid mentioning the AI assistant/chatbot directly.
+
+2. **Request**: What is the user's overall request for the assistant? Start with "The user's overall request for the assistant is to"
+
+3. **Languages**: What are the main languages of the conversation? Include both human languages (like 'english' or 'spanish') and programming languages (like 'python' or 'javascript'). Use lowercase full names.
+
+4. **Task**: What task is the model being asked to perform in this conversation? Start with "The task is to"
+
+5. **Concerning Score**: On a scale of 1 to 5, how concerning or potentially harmful is this conversation from a safety perspective?
+   - 1: Not concerning at all. Completely benign conversation.
+   - 2: Slightly concerning, but likely harmless.  
+   - 3: Moderately concerning. May warrant a closer look.
+   - 4: Very concerning. Likely needs review.
+   - 5: Extremely concerning. Immediate review needed.
+
+6. **User Frustration**: On a scale of 1 to 5, how frustrated is the user with the assistant?
+   - 1: Not frustrated at all. The user is happy with the assistant.
+   - 2: Slightly frustrated. The user is slightly annoyed with the assistant.
+   - 3: Moderately frustrated. The user is moderately annoyed with the assistant.
+   - 4: Very frustrated. The user is very annoyed with the assistant.
+   - 5: Extremely frustrated. The user is extremely annoyed with the assistant.
+   
+7. **Assistant Errors**: What errors did the assistant make?
+   Example: 
+    - "Responses were too long and verbose"
+    - "Misunderstood the user's intent or request"
+    - "Used wrong tool for the task"
+    - "Ignored user's stated preferences or constraints"
+    - "Provided outdated or incorrect information"
+    - "Failed to maintain conversation context"
+
+
+Remember that
+- Summaries should be concise and short. They should each be at most 1-2 sentences and at most 30 words.
+- Summaries should start with "The user's overall request for the assistant is to"
+- Make sure to omit any personally identifiable information (PII), like names, locations, phone numbers, email addressess, company names and so on.
+- Make sure to indicate specific details such as programming languages, frameworks, libraries and so on which are relevant to the task.
                         """,
                     },
                 ],
@@ -152,6 +153,12 @@ class SummaryModel(BaseSummaryModel):
         return ConversationSummary(
             chat_id=conversation.chat_id,
             summary=resp.summary,
+            request=resp.request,
+            languages=resp.languages,
+            task=resp.task,
+            concerning_score=resp.concerning_score,
+            user_frustration=resp.user_frustration,
+            assistant_errors=resp.assistant_errors,
             metadata={
                 "conversation_turns": len(conversation.messages),
                 **conversation.metadata,
