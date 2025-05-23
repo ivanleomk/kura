@@ -1,11 +1,8 @@
 import time
 import asyncio
-import os
-import subprocess
 from contextlib import contextmanager
-from typing import Dict, List
+from rich.console import Console
 
-import rich
 
 @contextmanager
 def timer(description: str):
@@ -32,9 +29,6 @@ show_section_header("Module Imports")
 
 with timer("Importing kura modules"):
     from kura import Kura
-    from kura.cluster import ClusterModel
-    from kura.meta_cluster import MetaClusterModel
-    from kura.summarisation import SummaryModel
     from kura.types import Conversation
 
 print("All kura modules imported successfully!\n")
@@ -43,8 +37,6 @@ print("All kura modules imported successfully!\n")
 show_section_header("Configuration")
 
 print("Configuring Kura instance...")
-
-from rich.console import Console
 
 kura = Kura(
     max_clusters=10,

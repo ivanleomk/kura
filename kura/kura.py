@@ -63,10 +63,6 @@ class Kura:
         max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
         conversation_checkpoint_name: str = "conversations.json",
-        summary_checkpoint_name: str = "summaries.jsonl",
-        cluster_checkpoint_name: str = "clusters.jsonl",
-        meta_cluster_checkpoint_name: str = "meta_clusters.jsonl",
-        dimensionality_checkpoint_name: str = "dimensionality.jsonl",
         disable_checkpoints: bool = False,
         override_checkpoint_dir: bool = False,
         console: Optional['Console'] = None,
@@ -84,14 +80,15 @@ class Kura:
             max_clusters: Target number of top-level clusters (default: 10)
             checkpoint_dir: Directory for saving intermediate results (default: "./checkpoints")
             conversation_checkpoint_name: Filename for conversations checkpoint (default: "conversations.json")
-            summary_checkpoint_name: Filename for summaries checkpoint (default: "summaries.jsonl")
-            cluster_checkpoint_name: Filename for clusters checkpoint (default: "clusters.jsonl")
-            meta_cluster_checkpoint_name: Filename for meta-clusters checkpoint (default: "meta_clusters.jsonl")
-            dimensionality_checkpoint_name: Filename for dimensionality checkpoint (default: "dimensionality.jsonl")
             disable_checkpoints: Whether to disable checkpoint loading/saving (default: False)
             override_checkpoint_dir: Whether to clear existing checkpoint directory (default: False)
             console: Optional Rich console instance to use for output (default: None, will create if Rich is available)
             disable_progress: Whether to disable all progress bars for cleaner output (default: False)
+            
+        Note:
+            Checkpoint filenames for individual processing steps (summaries, clusters, meta-clusters, 
+            dimensionality reduction) are now defined as properties in their respective base classes
+            rather than constructor arguments.
         """
         # Initialize Rich console if available and not provided
         if console is None and RICH_AVAILABLE and not disable_progress:
@@ -136,15 +133,31 @@ class Kura:
             return os.path.join(self.checkpoint_dir, filename)
         
         self.conversation_checkpoint_name = _checkpoint_path(conversation_checkpoint_name)
-        self.cluster_checkpoint_name = _checkpoint_path(cluster_checkpoint_name)
-        self.meta_cluster_checkpoint_name = _checkpoint_path(meta_cluster_checkpoint_name)
-        self.dimensionality_checkpoint_name = _checkpoint_path(dimensionality_checkpoint_name)
-        self.summary_checkpoint_name = _checkpoint_path(summary_checkpoint_name)
         self.disable_checkpoints = disable_checkpoints
         self.override_checkpoint_dir = override_checkpoint_dir
         
         # Initialize visualizer
         self._visualizer = None
+
+    @property
+    def summary_checkpoint_path(self) -> str:
+        """Get the checkpoint path for summaries based on the summarisation model."""
+        return os.path.join(self.checkpoint_dir, self.summarisation_model.checkpoint_filename)
+    
+    @property
+    def cluster_checkpoint_path(self) -> str:
+        """Get the checkpoint path for clusters based on the cluster model."""
+        return os.path.join(self.checkpoint_dir, self.cluster_model.checkpoint_filename)
+    
+    @property
+    def meta_cluster_checkpoint_path(self) -> str:
+        """Get the checkpoint path for meta-clusters based on the meta-cluster model."""
+        return os.path.join(self.checkpoint_dir, self.meta_cluster_model.checkpoint_filename)
+    
+    @property
+    def dimensionality_checkpoint_path(self) -> str:
+        """Get the checkpoint path for dimensionality reduction based on the dimensionality model."""
+        return os.path.join(self.checkpoint_dir, self.dimensionality_reduction.checkpoint_filename)
 
     def load_checkpoint(
         self, checkpoint_path: str, response_model: type[T]
@@ -209,7 +222,7 @@ class Kura:
             List of clusters with hierarchical structure
         """
         checkpoint_items = self.load_checkpoint(
-            self.meta_cluster_checkpoint_name, Cluster
+            self.meta_cluster_checkpoint_path, Cluster
         )
         if checkpoint_items:
             return checkpoint_items
@@ -236,7 +249,7 @@ class Kura:
 
             print(f"Reduced to {len(root_clusters)} clusters")
 
-        self.save_checkpoint(self.meta_cluster_checkpoint_name, clusters)
+        self.save_checkpoint(self.meta_cluster_checkpoint_path, clusters)
         return clusters
 
     async def summarise_conversations(
@@ -254,13 +267,13 @@ class Kura:
             List of conversation summaries
         """
         checkpoint_items = self.load_checkpoint(
-            self.summary_checkpoint_name, ConversationSummary
+            self.summary_checkpoint_path, ConversationSummary
         )
         if checkpoint_items:
             return checkpoint_items
 
         summaries = await self.summarisation_model.summarise(conversations)
-        self.save_checkpoint(self.summary_checkpoint_name, summaries)
+        self.save_checkpoint(self.summary_checkpoint_path, summaries)
         return summaries
 
     async def generate_base_clusters(self, summaries: list[ConversationSummary]) -> list[Cluster]:
@@ -275,14 +288,14 @@ class Kura:
         Returns:
             List of base clusters
         """
-        base_cluster_checkpoint_items = self.load_checkpoint(
-            self.cluster_checkpoint_name, Cluster
+        checkpoint_items = self.load_checkpoint(
+            self.cluster_checkpoint_path, Cluster
         )
-        if base_cluster_checkpoint_items:
-            return base_cluster_checkpoint_items
+        if checkpoint_items:
+            return checkpoint_items
 
         clusters: list[Cluster] = await self.cluster_model.cluster_summaries(summaries)
-        self.save_checkpoint(self.cluster_checkpoint_name, clusters)
+        self.save_checkpoint(self.cluster_checkpoint_path, clusters)
         return clusters
 
     async def reduce_dimensionality(
@@ -300,7 +313,7 @@ class Kura:
             List of projected clusters with 2D coordinates
         """
         checkpoint_items = self.load_checkpoint(
-            self.dimensionality_checkpoint_name, ProjectedCluster
+            self.dimensionality_checkpoint_path, ProjectedCluster
         )
         if checkpoint_items:
             return checkpoint_items
@@ -310,7 +323,7 @@ class Kura:
         )
 
         self.save_checkpoint(
-            self.dimensionality_checkpoint_name, dimensionality_reduced_clusters
+            self.dimensionality_checkpoint_path, dimensionality_reduced_clusters
         )
         return dimensionality_reduced_clusters
 

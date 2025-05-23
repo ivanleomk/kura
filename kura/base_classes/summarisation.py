@@ -5,6 +5,12 @@ from typing import Union
 
 
 class BaseSummaryModel(ABC):
+    @property
+    @abstractmethod
+    def checkpoint_filename(self) -> str:
+        """The filename to use for checkpointing this model's output."""
+        pass
+    
     @abstractmethod
     async def summarise(
         self, conversations: list[Conversation]

@@ -7,6 +7,11 @@ import asyncio
 
 
 class HDBUMAP(BaseDimensionalityReduction):
+    @property
+    def checkpoint_filename(self) -> str:
+        """The filename to use for checkpointing this model's output."""
+        return "dimensionality.jsonl"
+    
     def __init__(
         self,
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),

@@ -15,6 +15,11 @@ if TYPE_CHECKING:
 
 
 class ClusterModel(BaseClusterModel):
+    @property
+    def checkpoint_filename(self) -> str:
+        """The filename to use for checkpointing this model's output."""
+        return "clusters.jsonl"
+    
     def __init__(
         self,
         clustering_method: BaseClusteringMethod = KmeansClusteringMethod(),
@@ -190,7 +195,7 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                 layout["progress"].update(progress)
                 
                 try:
-                    with Live(layout, console=self.console, refresh_per_second=4) as live:
+                    with Live(layout, console=self.console, refresh_per_second=4):
                         completed_tasks = []
                         for i, task in enumerate(asyncio.as_completed(tasks)):
                             result = await task
@@ -244,7 +249,7 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
                             progress.update(task_id, completed=i + 1)
                         
                         return completed_tasks
-                except (ImportError, LiveError) as e:
+                except (ImportError, LiveError):
                     # Rich not available or Live error, run silently
                     return await asyncio.gather(*tasks)
         else:

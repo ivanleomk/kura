@@ -5,7 +5,7 @@ in the terminal, including basic tree views, enhanced visualizations with statis
 and rich-formatted output using the Rich library when available.
 """
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from kura.types import Cluster, ClusterTreeNode
 
 # Try to import Rich, fall back gracefully if not available
@@ -44,7 +44,7 @@ class ClusterVisualizer:
         self.kura = kura_instance
         self.console = kura_instance.console
         self.max_clusters = kura_instance.max_clusters
-        self.meta_cluster_checkpoint_name = kura_instance.meta_cluster_checkpoint_name
+        self.meta_cluster_checkpoint_path = kura_instance.meta_cluster_checkpoint_path
     
     def _build_tree_structure(
         self,
@@ -117,7 +117,7 @@ class ClusterVisualizer:
         ║       ╚══ Compare and select Flutter state management solutions (17 conversations)
         ╠══ Optimize blog posts for SEO and improved user engagement (28 conversations)
         """
-        with open(self.meta_cluster_checkpoint_name) as f:
+        with open(self.meta_cluster_checkpoint_path) as f:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
         node_id_to_cluster = {}
@@ -179,7 +179,7 @@ class ClusterVisualizer:
         """
         # Color scheme based on level
         colors = ["bright_cyan", "bright_green", "bright_yellow", "bright_magenta", "bright_blue"]
-        color = colors[level % len(colors)]
+        colors[level % len(colors)]
         
         # Current line prefix (used for tree visualization symbols)
         current_prefix = prefix
@@ -238,7 +238,7 @@ class ClusterVisualizer:
         print("🎯 ENHANCED CLUSTER VISUALIZATION")
         print("="*80)
         
-        with open(self.meta_cluster_checkpoint_name) as f:
+        with open(self.meta_cluster_checkpoint_path) as f:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
         node_id_to_cluster = {}
@@ -299,7 +299,7 @@ class ClusterVisualizer:
             self.visualise_clusters_enhanced()
             return
 
-        with open(self.meta_cluster_checkpoint_name) as f:
+        with open(self.meta_cluster_checkpoint_path) as f:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
         # Build cluster tree structure

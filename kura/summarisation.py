@@ -2,7 +2,6 @@ from asyncio import Semaphore, gather
 from typing import Any, Callable, Optional, Union
 
 import instructor
-from pydantic import BaseModel, Field
 from tqdm.asyncio import tqdm_asyncio
 import asyncio
 
@@ -16,27 +15,12 @@ if TYPE_CHECKING:
     from rich.console import Console
 
 
-
-class GeneratedSummary(BaseModel):
-    summary: str = Field(..., description="A clear and concise summary of the conversation in at most two sentences, avoiding phrases like 'Based on the conversation' and excluding proper nouns or PII")
-    request: Optional[str] = Field(None, description="The user's overall request for the assistant")
-    languages: Optional[list[str]] = Field(None, description="Main languages present in the conversation including human and programming languages (e.g., ['english', 'arabic', 'python', 'javascript'])")
-    task: Optional[str] = Field(None, description="The task the model is being asked to perform")
-    concerning_score: Optional[int] = Field(None, ge=1, le=5, description="Safety concern rating from 1-5 scale")
-    user_frustration: Optional[int] = Field(None, ge=1, le=5, description="User frustration rating from 1-5 scale")
-    assistant_errors: Optional[list[str]] = Field(None, description="List of errors the assistant made")
-    
-
-class ConversationSummary(GeneratedSummary):
-    chat_id: str
-    metadata: dict
-
-class ExtractedProperty(BaseModel):
-    name: str
-    value: Union[str, int, float, bool, list[str], list[int], list[float]]
-
-
 class SummaryModel(BaseSummaryModel):
+    @property
+    def checkpoint_filename(self) -> str:
+        """The filename to use for checkpointing this model's output."""
+        return "summaries.jsonl"
+    
     def __init__(
         self,
         model: str = "gemini/gemini-2.0-flash",
@@ -92,7 +76,7 @@ class SummaryModel(BaseSummaryModel):
                     layout["progress"].update(progress)
                     
                     try:
-                        with Live(layout, console=self.console, refresh_per_second=4) as live:
+                        with Live(layout, console=self.console, refresh_per_second=4):
                             completed_tasks = []
                             for i, task in enumerate(asyncio.as_completed(tasks)):
                                 result = await task
@@ -182,7 +166,7 @@ class SummaryModel(BaseSummaryModel):
                         
                         return completed_tasks
                         
-            except (ImportError, LiveError) as e:
+            except (ImportError, LiveError):
                 # Rich not available or Live error, fall back to simple print statements
                 self.console.print(f"[cyan]Starting {desc}...[/cyan]")
                 completed_tasks = []

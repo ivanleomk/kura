@@ -7,13 +7,12 @@ import math
 from kura.types.cluster import Cluster, GeneratedCluster
 from kura.embedding import OpenAIEmbeddingModel
 import instructor
-from tqdm.asyncio import tqdm_asyncio
 from asyncio import Semaphore
 from pydantic import BaseModel, field_validator, ValidationInfo
 import re
 from thefuzz import fuzz
 import asyncio
-from typing import Any, Optional
+from typing import Optional
 
 # Rich imports handled by Kura base class
 from typing import TYPE_CHECKING
@@ -65,6 +64,11 @@ class ClusterLabel(BaseModel):
 
 
 class MetaClusterModel(BaseMetaClusterModel):
+    @property
+    def checkpoint_filename(self) -> str:
+        """The filename to use for checkpointing this model's output."""
+        return "meta_clusters.jsonl"
+    
     def __init__(
         self,
         max_concurrent_requests: int = 50,
@@ -94,7 +98,7 @@ class MetaClusterModel(BaseMetaClusterModel):
         if self.console:
             print(f"MetaClusterModel: Console is set to {type(self.console)}")
         else:
-            print(f"MetaClusterModel: Console is None - Rich progress bars will not be available")
+            print("MetaClusterModel: Console is None - Rich progress bars will not be available")
 
     async def _gather_with_progress(self, tasks, desc: str = "Processing", disable: bool = False, show_preview: bool = False):
         """Helper method to run async gather with Rich progress bar if available, otherwise tqdm."""
@@ -139,7 +143,7 @@ class MetaClusterModel(BaseMetaClusterModel):
                     layout["progress"].update(progress)
                     
                     try:
-                        with Live(layout, console=self.console, refresh_per_second=4) as live:
+                        with Live(layout, console=self.console, refresh_per_second=4):
                             completed_tasks = []
                             for i, task in enumerate(asyncio.as_completed(tasks)):
                                 result = await task
@@ -164,9 +168,9 @@ class MetaClusterModel(BaseMetaClusterModel):
                                 if preview_buffer:
                                     preview_text = Text()
                                     for j, cluster in enumerate(preview_buffer):
-                                        preview_text.append(f"Meta Cluster: ", style="bold magenta")
+                                        preview_text.append("Meta Cluster: ", style="bold magenta")
                                         preview_text.append(f"{cluster.name[:80]}...\n", style="bold white")
-                                        preview_text.append(f"Description: ", style="bold cyan")
+                                        preview_text.append("Description: ", style="bold cyan")
                                         preview_text.append(f"{cluster.description[:100]}...\n\n", style="dim white")
                                     
                                     layout["preview"].update(Panel(
@@ -176,7 +180,7 @@ class MetaClusterModel(BaseMetaClusterModel):
                                     ))
                             
                             return completed_tasks
-                    except LiveError as live_error:
+                    except LiveError:
                         # If Rich Live fails (e.g., another Live is active), fall back to simple progress
                         with progress:
                             completed_tasks = []
@@ -207,7 +211,7 @@ class MetaClusterModel(BaseMetaClusterModel):
                         
                         return completed_tasks
                         
-            except (ImportError, LiveError) as e:
+            except (ImportError, LiveError):
                 # Rich not available or Live error, run silently
                 return await asyncio.gather(*tasks)
         else:
@@ -409,7 +413,7 @@ Based on this information, determine the most appropriate higher-level cluster a
                 max_preview_items = 3
                 
                 try:
-                    with Live(layout, console=self.console, refresh_per_second=4) as live:
+                    with Live(layout, console=self.console, refresh_per_second=4):
                         # Step 1: Generate candidate clusters
                         candidate_labels = await self.generate_candidate_clusters(
                             clusters, Semaphore(self.max_concurrent_requests)
@@ -450,9 +454,9 @@ Based on this information, determine the most appropriate higher-level cluster a
                             if preview_buffer:
                                 preview_text = Text()
                                 for j, cluster in enumerate(preview_buffer):
-                                    preview_text.append(f"Meta Cluster: ", style="bold magenta")
+                                    preview_text.append("Meta Cluster: ", style="bold magenta")
                                     preview_text.append(f"{cluster.name[:80]}...\n", style="bold white")
-                                    preview_text.append(f"Description: ", style="bold cyan")
+                                    preview_text.append("Description: ", style="bold cyan")
                                     preview_text.append(f"{cluster.description[:100]}...\n\n", style="dim white")
                                 
                                 layout["preview"].update(Panel(
