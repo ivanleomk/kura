@@ -9,7 +9,6 @@ import subprocess
 
 # Create and configure Kura instance
 kura = Kura(
-    max_clusters=10,
     checkpoint_dir="./tutorial_checkpoints",
     summarisation_model=SummaryModel(
         model="openai/gpt-4.1",
@@ -22,8 +21,9 @@ kura = Kura(
     meta_cluster_model=MetaClusterModel(
         model="openai/gpt-4.1",
         max_concurrent_requests=50,
+        max_clusters=10,  # Configure target number of top-level clusters
     ),
-    override_checkpoint_dir=True,
+    disable_checkpoints=False,
 )
 
 # Load sample data

@@ -19,11 +19,9 @@ kura = Kura(
     embedding_model=OpenAIEmbeddingModel(),
     summarisation_model=SummaryModel(),
     cluster_model=ClusterModel(),
-    meta_cluster_model=MetaClusterModel(),
+    meta_cluster_model=MetaClusterModel(max_clusters=10),
     dimensionality_reduction=HDBUMAP(),
-    max_clusters=10,
     checkpoint_dir="./my_checkpoints",
-    override_checkpoint_dir=False,
     disable_checkpoints=False,
 )
 ```
@@ -37,9 +35,7 @@ kura = Kura(
 | `cluster_model`            | `BaseClusterModel`            | `ClusterModel()`         | Model used for initial clustering                   |
 | `meta_cluster_model`       | `BaseMetaClusterModel`        | `MetaClusterModel()`     | Model used for hierarchical clustering              |
 | `dimensionality_reduction` | `BaseDimensionalityReduction` | `HDBUMAP()`              | Method used to reduce dimensions for visualization  |
-| `max_clusters`             | `int`                         | `10`                     | Target number of top-level clusters                 |
 | `checkpoint_dir`           | `str`                         | `"./checkpoints"`        | Directory to store checkpoint files                 |
-| `override_checkpoint_dir`  | `bool`                        | `False`                  | Whether to clear existing checkpoint directory      |
 | `disable_checkpoints`      | `bool`                        | `False`                  | Whether to disable checkpoint saving/loading        |
 
 ## Checkpoint Files
@@ -54,17 +50,7 @@ Kura saves several checkpoint files during processing:
 | `meta_clusters.jsonl`  | Hierarchical cluster data        |
 | `dimensionality.jsonl` | Projected data for visualization |
 
-You can override the checkpoint filenames if needed:
-
-```python
-kura = Kura(
-    conversation_checkpoint_name="my_conversations.json",
-    summary_checkpoint_name="my_summaries.jsonl",
-    cluster_checkpoint_name="my_clusters.jsonl",
-    meta_cluster_checkpoint_name="my_meta_clusters.jsonl",
-    dimensionality_checkpoint_name="my_dimensionality.jsonl",
-)
-```
+Checkpoint filenames are now defined as properties in their respective model classes rather than constructor arguments.
 
 ## Customizing Components
 
@@ -108,8 +94,8 @@ from kura.cluster import ClusterModel
 from kura.meta_cluster import MetaClusterModel
 
 # Configure clustering models
-cluster_model = ClusterModel(min_cluster_size=5)
-meta_cluster_model = MetaClusterModel(similarity_threshold=0.85)
+cluster_model = ClusterModel()
+meta_cluster_model = MetaClusterModel(max_clusters=15)  # Target 15 top-level clusters
 
 kura = Kura(
     cluster_model=cluster_model,

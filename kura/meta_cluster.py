@@ -75,6 +75,7 @@ class MetaClusterModel(BaseMetaClusterModel):
         model: str = "openai/gpt-4o-mini",
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         clustering_model: BaseClusteringMethod | None = None,
+        max_clusters: int = 10,
         console: Optional['Console'] = None,
         **kwargs,  # For future use
     ):
@@ -85,6 +86,7 @@ class MetaClusterModel(BaseMetaClusterModel):
         self.max_concurrent_requests = max_concurrent_requests
         self.client = instructor.from_provider(model, async_client=True)
         self.console = console
+        self.max_clusters = max_clusters
         
         if embedding_model is None:
             embedding_model = OpenAIEmbeddingModel()

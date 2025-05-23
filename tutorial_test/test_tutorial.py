@@ -39,9 +39,8 @@ show_section_header("Configuration")
 print("Configuring Kura instance...")
 
 kura = Kura(
-    max_clusters=10,
     checkpoint_dir="./tutorial_checkpoints",
-    override_checkpoint_dir=True,
+    disable_checkpoints=False,
     model="openai/gpt-4.1",
     max_concurrent_requests=50,
     console=Console(),

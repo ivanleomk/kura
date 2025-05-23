@@ -43,8 +43,7 @@ class ClusterVisualizer:
         """
         self.kura = kura_instance
         self.console = kura_instance.console
-        self.max_clusters = kura_instance.max_clusters
-        self.meta_cluster_checkpoint_path = kura_instance.meta_cluster_checkpoint_path
+        self.meta_cluster_model = kura_instance.meta_cluster_model
     
     def _build_tree_structure(
         self,
@@ -117,7 +116,7 @@ class ClusterVisualizer:
         ║       ╚══ Compare and select Flutter state management solutions (17 conversations)
         ╠══ Optimize blog posts for SEO and improved user engagement (28 conversations)
         """
-        with open(self.meta_cluster_checkpoint_path) as f:
+        with open(self.kura.meta_cluster_checkpoint_path) as f:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
         node_id_to_cluster = {}
@@ -284,7 +283,6 @@ class ClusterVisualizer:
         print(f"🌳 Root Clusters: {len(root_nodes)}")
         print(f"💬 Total Conversations: {total_conversations:,}")
         print(f"📏 Average Conversations per Root Cluster: {total_conversations/len(root_nodes):.1f}")
-        print(f"🎯 Target Max Clusters: {self.max_clusters}")
         print("="*80 + "\n")
 
     def visualise_clusters_rich(self):
@@ -299,7 +297,7 @@ class ClusterVisualizer:
             self.visualise_clusters_enhanced()
             return
 
-        with open(self.meta_cluster_checkpoint_path) as f:
+        with open(self.kura.meta_cluster_checkpoint_path) as f:
             clusters = [Cluster.model_validate_json(line) for line in f]
 
         # Build cluster tree structure
@@ -382,7 +380,6 @@ class ClusterVisualizer:
         stats_table.add_row("🌳 Root Clusters", f"{len(root_nodes):,}")
         stats_table.add_row("💬 Total Conversations", f"{total_conversations:,}")
         stats_table.add_row("📏 Avg per Root Cluster", f"{total_conversations/len(root_nodes):.1f}")
-        stats_table.add_row("🎯 Target Max Clusters", f"{self.max_clusters}")
         
         # Create cluster size distribution table
         size_table = Table(title="📊 Cluster Size Distribution", box=ROUNDED, title_style="bold bright_magenta")

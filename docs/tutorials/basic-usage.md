@@ -23,10 +23,16 @@ import asyncio
 
 # Initialize Kura with default settings
 kura = Kura(
-    max_clusters=10,  # Target number of top-level clusters
     checkpoint_dir="./tutorial_checkpoints",  # Where to save results
-    override_checkpoint_dir=True  # Clear existing checkpoints
+    disable_checkpoints=False  # Enable checkpoint saving
 )
+
+# Note: To customize the target number of top-level clusters (default is 10):
+# from kura.meta_cluster import MetaClusterModel
+# kura = Kura(
+#     meta_cluster_model=MetaClusterModel(max_clusters=15),
+#     checkpoint_dir="./tutorial_checkpoints"
+# )
 ```
 
 ## Step 2: Load Sample Data
@@ -138,9 +144,8 @@ import subprocess
 
 # Create and configure Kura instance
 kura = Kura(
-    max_clusters=10,
     checkpoint_dir="./tutorial_checkpoints",
-    override_checkpoint_dir=True
+    disable_checkpoints=False
 )
 
 # Load sample data

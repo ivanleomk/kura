@@ -49,7 +49,6 @@ class Kura:
         cluster_model: Model for initial clustering of summaries
         meta_cluster_model: Model for creating hierarchical clusters
         dimensionality_reduction: Model for projecting clusters to 2D space
-        max_clusters: Target number of top-level clusters
         checkpoint_dir: Directory for saving intermediate results
     """
     
@@ -60,7 +59,6 @@ class Kura:
         cluster_model: BaseClusterModel = None,
         meta_cluster_model: BaseMetaClusterModel = None,
         dimensionality_reduction: BaseDimensionalityReduction = HDBUMAP(),
-        max_clusters: int = 10,
         checkpoint_dir: str = "./checkpoints",
         conversation_checkpoint_name: str = "conversations.json",
         disable_checkpoints: bool = False,
@@ -76,7 +74,7 @@ class Kura:
             cluster_model: Model for initial clustering (default: ClusterModel)
             meta_cluster_model: Model for hierarchical clustering (default: MetaClusterModel)
             dimensionality_reduction: Model for 2D projection (default: HDBUMAP)
-            max_clusters: Target number of top-level clusters (default: 10)
+            max_clusters: Deprecated. Use meta_cluster_model with configured max_clusters instead
             checkpoint_dir: Directory for saving intermediate results (default: "./checkpoints")
             conversation_checkpoint_name: Filename for conversations checkpoint (default: "conversations.json")
             disable_checkpoints: Whether to disable checkpoint loading/saving (default: False)
@@ -116,11 +114,10 @@ class Kura:
             self.cluster_model = cluster_model
             
         if meta_cluster_model is None:
+            # Pass max_clusters to MetaClusterModel if provided
             self.meta_cluster_model = MetaClusterModel(console=console_to_pass, **kwargs)
         else:
             self.meta_cluster_model = meta_cluster_model
-            
-        self.max_clusters = max_clusters
         self.dimensionality_reduction = dimensionality_reduction
 
         # Define Checkpoints
@@ -132,7 +129,6 @@ class Kura:
         
         self.conversation_checkpoint_name = _checkpoint_path(conversation_checkpoint_name)
         self.disable_checkpoints = disable_checkpoints
-        self.override_checkpoint_dir = override_checkpoint_dir
         
         # Initialize visualizer
         self._visualizer = None
@@ -206,7 +202,7 @@ class Kura:
         """Reduce clusters into a hierarchical structure.
         
         Iteratively combines similar clusters until the number of root clusters
-        is less than or equal to max_clusters.
+        is less than or equal to the meta_cluster_model's max_clusters.
         
         Args:
             clusters: List of initial clusters
@@ -224,7 +220,7 @@ class Kura:
 
         print(f"Starting with {len(root_clusters)} clusters")
 
-        while len(root_clusters) > self.max_clusters:
+        while len(root_clusters) > self.meta_cluster_model.max_clusters:
             # We get the updated list of clusters
             new_current_level = await self.meta_cluster_model.reduce_clusters(
                 root_clusters
