@@ -6,7 +6,6 @@ from tqdm.asyncio import tqdm_asyncio
 import numpy as np
 from asyncio import Semaphore
 import instructor
-from google.genai import Client
 
 
 class ClusterModel(BaseClusterModel):
@@ -15,14 +14,12 @@ class ClusterModel(BaseClusterModel):
         clustering_method: BaseClusteringMethod = KmeansClusteringMethod(),
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         max_concurrent_requests: int = 50,
-        client=instructor.from_genai(Client(), use_async=True),
-        model="gemini-2.0-flash",
+        model: str = "openai/gpt-4o",
     ):
         self.clustering_method = clustering_method
         self.embedding_model = embedding_model
         self.max_concurrent_requests = max_concurrent_requests
-        self.client = client
-        self.model = model
+        self.client = instructor.from_provider(model, async_client=True)
 
     def get_contrastive_examples(
         self,
@@ -50,43 +47,52 @@ class ClusterModel(BaseClusterModel):
     ) -> Cluster:
         async with sem:
             resp = await self.client.chat.completions.create(
-                model=self.model,
                 messages=[
                     {
                         "role": "system",
                         "content": """
-                    You are tasked with summarizing a group of related statements into a short, precise, and accurate description and name. Your goal is to create a concise summary that captures the essence of these statements and distinguishes them from other similar groups of statements.
-                    
-                    Summarize all the statements into a clear, precise, two-sentence description in the past tense. Your summary should be specific to this group and distinguish it from the contrastive answers of the other groups.
+You are tasked with summarizing a group of related statements into a short, precise, and accurate description and name. Your goal is to create a concise summary that captures the essence of these statements and distinguishes them from other similar groups of statements.
 
-                    After creating the summary, generate a short name for the group of statements. This name should be at most ten words long (perhaps less) and be specific but also reflective of most of the statements (rather than reflecting only one or two). The name should distinguish this group from the contrastive examples. For instance, "Write fantasy sexual roleplay with octopi and monsters", "Generate blog spam for gambling websites", or "Assist with high school math homework" would be better and more actionable than general terms like "Write erotic content" or "Help with homework". Be as descriptive as possible and assume neither good nor bad faith. Do not hesitate to identify and describe socially harmful or sensitive topics specifically; specificity is necessary for monitoring
-                    
-                    The cluster name should be a sentence in the imperative that captures the user’s request. For example, ‘Brainstorm ideas for a birthday party’ or ‘Help me find a new job.”
+Summarize all the statements into a clear, precise, two-sentence description in the past tense. Your summary should be specific to this group and distinguish it from the contrastive answers of the other groups.
+
+After creating the summary, generate a short name for the group of statements. This name should be at most ten words long (perhaps less) and be specific but also reflective of most of the statements (rather than reflecting only one or two).
+
+The name should distinguish this group from the contrastive examples. For instance, "Write fantasy sexual roleplay with octopi and monsters", "Generate blog spam for gambling websites", or "Assist with high school math homework" would be better and more actionable than general terms like "Write erotic content" or "Help with homework". Be as descriptive as possible and assume neither good nor bad faith. Do not hesitate to identify and describe socially harmful or sensitive topics specifically; specificity is necessary for monitoring.
+
+Present your output in the following format:
+<summary> [Insert your two-sentence summary here] </summary>
+<name> [Insert your generated short name here] </name>
+
+The names you propose must follow these requirements:
+- The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job.'
+- Create names that are specific enough to be meaningful, but not so specific that they can't meaningfully represent many different statements.
+- Avoid overly general or vague terms, and do not hesitate to describe socially harmful or sensitive topics (in fact, clusters that clearly describe harmful behavior are slightly preferred); specificity is necessary for observability and enforcement.
+- Ensure that the cluster name is distinct from the contrastive examples.
+- Use clear, concise, and descriptive language for the cluster name.
+
+Below are the related statements:
+<positive_examples>
+{% for item in positive_examples %}{{ item.summary }}
+{% endfor %}
+</positive_examples>
+
+For context, here are statements from nearby groups that are NOT part of the group you're summarizing:
+<contrastive_examples>
+{% for item in contrastive_examples %}{{ item.summary }}
+{% endfor %}
+</contrastive_examples>
+
+Do not elaborate beyond what you say in the tags. Remember to analyze both the statements and the contrastive statements carefully to ensure your summary and name accurately represent the specific group while distinguishing it from others.
                     """,
                     },
                     {
-                        "role": "user",
-                        "content": """
-                    Here are the relevant statements
-
-                    Below are the related statements:
-                    <positive_examples>
-                    {% for item in positive_examples %}
-                        <positive_example>{{ item.summary }}</positive_example>
-                    {% endfor %}
-                    </positive_examples>  
-                    
-                    For context, here are statements from nearby groups that are NOT part of the group you’re summarizing
-                    
-                    <contrastive_examples>
-                    {% for item in contrastive_examples %}
-                    <contrastive_example>{{ item.summary }}</contrastive_example>
-                    {% endfor %}
-                    </contrastive_examples>
-                    
-                    Remember to analyze both the statements and the contrastive statements carefully to ensure your summary and name accurately represent the specific group while distinguishing it from others.
-                    """,
+                        "role": "user", 
+                        "content": "The cluster name should be a sentence in the imperative that captures the user's request. For example, 'Brainstorm ideas for a birthday party' or 'Help me find a new job.'"
                     },
+                    {
+                        "role": "assistant",
+                        "content": "Sure, I will provide a clear, precise, and accurate summary and name for this cluster. I will be descriptive and assume neither good nor bad faith. Here is the summary, which I will follow with the name: <summary>"
+                    }
                 ],
                 response_model=GeneratedCluster,
                 context={

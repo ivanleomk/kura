@@ -17,7 +17,6 @@ dependencies = [
     "hdbscan>=0.8.40",
     "eval-type-backport>=0.2.2",
     "jsonref>=1.1.0",
-    "google-genai>=1.10.0",
     "instructor>=1.7.9",
     "thefuzz>=0.22.1",
 ]
