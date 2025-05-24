@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Home, Network, MessageSquare, TrendingUp, Search } from 'lucide-react';
+import { Home, Network, MessageSquare, Search } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useState } from 'react';
 import { Button } from './ui/button';
@@ -8,7 +8,6 @@ const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Clusters', href: '/clusters', icon: Network },
   { name: 'Conversations', href: '/conversations', icon: MessageSquare },
-  { name: 'Insights', href: '/insights', icon: TrendingUp },
 ];
 
 export default function Layout() {

@@ -6,7 +6,6 @@ import ClustersPage from './pages/ClustersPage'
 import ClusterDetailPage from './pages/ClusterDetailPage'
 import ConversationsPage from './pages/ConversationsPage'
 import ConversationDetailPage from './pages/ConversationDetailPage'
-import InsightsPage from './pages/InsightsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,7 +27,6 @@ function App() {
             <Route path="clusters/:clusterId" element={<ClusterDetailPage />} />
             <Route path="conversations" element={<ConversationsPage />} />
             <Route path="conversations/:conversationId" element={<ConversationDetailPage />} />
-            <Route path="insights" element={<InsightsPage />} />
           </Route>
         </Routes>
       </Router>

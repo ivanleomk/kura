@@ -10,7 +10,7 @@ import { Map, TreePine } from 'lucide-react';
 type ViewMode = 'map' | 'tree';
 
 export default function ClustersPage() {
-  const [viewMode, setViewMode] = useState<ViewMode>('map');
+  const [viewMode, setViewMode] = useState<ViewMode>('tree');
   
   const { data: clusters, isLoading } = useQuery({
     queryKey: ['clusters'],
