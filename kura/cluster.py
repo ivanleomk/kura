@@ -128,7 +128,7 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
         sem = Semaphore(self.max_concurrent_requests)
         embeddings: list[list[float]] = await self._gather_with_progress(
             [
-                self.embedding_model.embed(text=item.summary, sem=sem)
+                self.embedding_model.embed(text=item.embeded_text(), sem=sem)
                 for item in summaries
             ],
             desc="Embedding Summaries",
