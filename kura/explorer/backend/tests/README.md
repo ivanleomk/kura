@@ -11,7 +11,6 @@ The test suite is organized into the following files:
 - **`test_clusters.py`** - Tests for clusters router endpoints
 - **`test_conversations.py`** - Tests for conversations router endpoints  
 - **`test_search.py`** - Tests for search router endpoints
-- **`test_insights.py`** - Tests for insights and analytics router endpoints
 - **`test_runner.py`** - Custom test runner script with various options
 
 ## Prerequisites
@@ -82,7 +81,6 @@ python tests/test_runner.py all
 python tests/test_runner.py router clusters
 python tests/test_runner.py router conversations
 python tests/test_runner.py router search
-python tests/test_runner.py router insights
 
 # Run tests matching a pattern
 python tests/test_runner.py pattern "test_get_clusters"
@@ -139,16 +137,7 @@ uv run pytest -k "clusters and success"
 - Response structure validation
 - Error handling
 
-### 5. Insights Tests (`test_insights.py`)
-- GET `/api/insights/language-stats` - Language usage statistics
-- GET `/api/insights/frustration-map` - User frustration heatmap
-- GET `/api/insights/metadata-dist` - Metadata value distribution
-- GET `/api/insights/themes` - Common themes extraction
-- GET `/api/insights/outliers` - Outlier conversations
-- GET `/api/insights/common-patterns` - Conversation patterns
-- POST `/api/insights/compare-clusters` - Cluster comparison
-
-### 6. Integration Tests (NEW)
+### 5. Integration Tests (NEW)
 
 #### Database Integrity Tests (`test_database_integrity.py`)
 - Database schema validation
