@@ -47,6 +47,29 @@ class ConversationDetailResponse(BaseModel):
     clusters: List[str] = Field(default_factory=list)
 
 
+class FrustrationFacets(BaseModel):
+    """Frustration level facet counts."""
+    low: int = 0      # frustration 1-2
+    medium: int = 0   # frustration 3
+    high: int = 0     # frustration 4
+    critical: int = 0 # frustration 5
+
+
+class ConversationFacets(BaseModel):
+    """Facets for conversation filtering."""
+    frustration_levels: FrustrationFacets
+
+
+class PaginatedConversationResponse(BaseModel):
+    """Paginated conversation response with facets."""
+    items: List[ConversationResponse]
+    total: int
+    limit: int
+    offset: int
+    has_more: bool
+    facets: ConversationFacets
+
+
 class ClusterResponse(BaseModel):
     """Basic cluster info."""
     id: str
