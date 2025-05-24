@@ -86,13 +86,13 @@ The names you propose must follow these requirements:
 
 Below are the related statements:
 <positive_examples>
-{% for item in positive_examples %}{{ item.summary }}
+{% for item in positive_examples %}{{ item.embeded_text() }}
 {% endfor %}
 </positive_examples>
 
 For context, here are statements from nearby groups that are NOT part of the group you're summarizing:
 <contrastive_examples>
-{% for item in contrastive_examples %}{{ item.summary }}
+{% for item in contrastive_examples %}{{ item.embeded_text() }}
 {% endfor %}
 </contrastive_examples>
 
