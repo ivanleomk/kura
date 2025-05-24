@@ -108,7 +108,15 @@ async def get_clusters(
         if sort_by == "name":
             enriched_clusters.sort(key=lambda x: x["cluster"].name, reverse=sort_desc)
         elif sort_by == "conversation_count":
-            enriched_clusters.sort(key=lambda x: len(x["cluster"].conversations), reverse=sort_desc)
+            # Get conversation counts for sorting
+            for item in enriched_clusters:
+                cluster = item["cluster"]
+                conv_count = session.exec(
+                    select(func.count(ClusterConversationLink.conversation_id))
+                    .where(ClusterConversationLink.cluster_id == cluster.id)
+                ).one()
+                item["conversation_count"] = conv_count
+            enriched_clusters.sort(key=lambda x: x["conversation_count"], reverse=sort_desc)
         elif sort_by == "frustration":
             enriched_clusters.sort(key=lambda x: x["avg_frustration"] or 0, reverse=sort_desc)
         
@@ -118,21 +126,30 @@ async def get_clusters(
     
     # Convert to response models
     items = []
-    for item in paginated:
-        cluster = item["cluster"]
-        items.append(ClusterResponse(
-            id=cluster.id,
-            name=cluster.name,
-            description=cluster.description,
-            level=cluster.level,
-            parent_id=cluster.parent_id,
-            x_coord=cluster.x_coord,
-            y_coord=cluster.y_coord,
-            conversation_count=len(cluster.conversations) if hasattr(cluster, 'conversations') else 0,
-            child_count=item["child_count"],
-            avg_frustration=item["avg_frustration"],
-            languages=item["languages"]
-        ))
+    with Session(explorer.engine) as session:
+        for item in paginated:
+            cluster = item["cluster"]
+            # Get conversation count safely
+            conv_count = item.get("conversation_count")
+            if conv_count is None:
+                conv_count = session.exec(
+                    select(func.count(ClusterConversationLink.conversation_id))
+                    .where(ClusterConversationLink.cluster_id == cluster.id)
+                ).one()
+            
+            items.append(ClusterResponse(
+                id=cluster.id,
+                name=cluster.name,
+                description=cluster.description,
+                level=cluster.level,
+                parent_id=cluster.parent_id,
+                x_coord=cluster.x_coord,
+                y_coord=cluster.y_coord,
+                conversation_count=conv_count,
+                child_count=item["child_count"],
+                avg_frustration=item["avg_frustration"],
+                languages=item["languages"]
+            ))
     
     return PaginatedResponse(
         items=items,
@@ -167,12 +184,18 @@ async def get_cluster_tree(
         frustration_scores = [s.user_frustration for s in summaries if s.user_frustration]
         avg_frustration = sum(frustration_scores) / len(frustration_scores) if frustration_scores else None
         
+        # Get conversation count safely
+        conv_count = session.exec(
+            select(func.count(ClusterConversationLink.conversation_id))
+            .where(ClusterConversationLink.cluster_id == cluster.id)
+        ).one()
+        
         return ClusterTreeNode(
             id=cluster.id,
             name=cluster.name,
             description=cluster.description,
             level=cluster.level,
-            conversation_count=len(cluster.conversations) if hasattr(cluster, 'conversations') else 0,
+            conversation_count=conv_count,
             avg_frustration=avg_frustration,
             children=[build_tree_node(child) for child in children]
         )
@@ -226,6 +249,27 @@ async def get_cluster(
             cluster_names=[]
         ))
     
+    # Build children responses safely  
+    children_responses = []
+    with Session(explorer.engine) as session:
+        for child in cluster_detail.children:
+            child_conv_count = session.exec(
+                select(func.count(ClusterConversationLink.conversation_id))
+                .where(ClusterConversationLink.cluster_id == child.id)
+            ).one()
+            
+            children_responses.append(ClusterResponse(
+                id=child.id,
+                name=child.name,
+                description=child.description,
+                level=child.level,
+                parent_id=child.parent_id,
+                x_coord=child.x_coord,
+                y_coord=child.y_coord,
+                conversation_count=child_conv_count,
+                child_count=0
+            ))
+
     return ClusterDetailResponse(
         id=cluster_detail.id,
         name=cluster_detail.name,
@@ -248,19 +292,7 @@ async def get_cluster(
             conversation_count=0,
             child_count=0
         ) if cluster_detail.parent else None,
-        children=[
-            ClusterResponse(
-                id=child.id,
-                name=child.name,
-                description=child.description,
-                level=child.level,
-                parent_id=child.parent_id,
-                x_coord=child.x_coord,
-                y_coord=child.y_coord,
-                conversation_count=len(child.conversations) if hasattr(child, 'conversations') else 0,
-                child_count=0
-            ) for child in cluster_detail.children
-        ],
+        children=children_responses,
         conversations=all_conversations,
         hierarchy=[
             ClusterResponse(

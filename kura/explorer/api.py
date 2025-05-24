@@ -122,10 +122,7 @@ class KuraExplorer:
                     level: Optional[int] = None) -> List[ClusterDB]:
         """Get clusters, optionally filtered by parent or level."""
         with Session(self.engine) as session:
-            query = select(ClusterDB).options(
-                selectinload(ClusterDB.conversations),
-                selectinload(ClusterDB.children)
-            )
+            query = select(ClusterDB)
             
             if parent_id is not None:
                 query = query.where(ClusterDB.parent_id == parent_id)
@@ -136,7 +133,10 @@ class KuraExplorer:
                 query = query.where(ClusterDB.parent_id == None)
                 
             results = session.exec(query.order_by(ClusterDB.name)).all()
-            # Ensure results are not detached
+            
+            # Note: Do not access relationships here as they will be detached
+            # The router code should handle conversation counting separately
+                
             return list(results)
             
     def get_cluster(self, cluster_id: str) -> Optional[ClusterDetail]:
