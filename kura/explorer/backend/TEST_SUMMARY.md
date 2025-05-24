@@ -48,16 +48,7 @@ Created a comprehensive test suite for the Kura Explorer FastAPI backend applica
 - ✅ Response structure validation
 - ✅ Error handling for invalid queries
 
-### 6. **Insights Router Tests (`tests/test_insights.py`)**
-- ✅ `GET /api/insights/language-stats` - Language usage analytics
-- ✅ `GET /api/insights/frustration-map` - User frustration heatmap
-- ✅ `GET /api/insights/metadata-dist` - Metadata distribution analysis
-- ✅ `GET /api/insights/themes` - Common themes extraction
-- ✅ `GET /api/insights/outliers` - Outlier conversation detection
-- ✅ `GET /api/insights/common-patterns` - Conversation patterns
-- ✅ `POST /api/insights/compare-clusters` - Cluster comparison
-
-### 7. **Test Tools & Utilities**
+### 6. **Test Tools & Utilities**
 - **Custom Test Runner** (`tests/test_runner.py`): Multiple execution modes
 - **Shell Script** (`run_tests.sh`): Automated test execution
 - **Coverage Reporting**: HTML and terminal coverage reports
@@ -186,7 +177,7 @@ test = [
 ## 🔮 Future Enhancements
 
 ### **Immediate Priorities**
-1. **Fix Database Session Mocking**: Complete cluster/insights router tests
+1. **Fix Database Session Mocking**: Complete cluster router tests
 2. **Add Integration Tests**: End-to-end testing scenarios
 3. **Performance Tests**: Load testing for endpoints
 4. **Authentication Tests**: If auth is added to the API
@@ -217,7 +208,6 @@ tests/
 ├── test_clusters.py           # Clusters router tests  
 ├── test_conversations.py      # Conversations router tests
 ├── test_search.py             # Search router tests
-├── test_insights.py           # Insights router tests
 ├── test_runner.py             # Custom test runner
 └── README.md                  # Testing documentation
 

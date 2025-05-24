@@ -47,7 +47,7 @@ def run_specific_router_tests(router_name: str):
     """Run tests for a specific router.
     
     Args:
-        router_name: Name of the router (main, clusters, conversations, search, insights)
+        router_name: Name of the router (main, clusters, conversations, search)
     """
     test_file = f"tests/test_{router_name}.py"
     if not os.path.exists(test_file):

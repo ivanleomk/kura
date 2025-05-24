@@ -88,7 +88,6 @@ echo "   uv run pytest tests/test_main.py -v                    # Main app tests
 echo "   uv run pytest tests/test_search.py -v                  # Search tests"
 echo "   uv run pytest tests/test_conversations.py -v           # Conversations tests"  
 echo "   uv run pytest tests/test_clusters.py -v                # Clusters tests"
-echo "   uv run pytest tests/test_insights.py -v                # Insights tests"
 echo "   python tests/test_runner.py all                        # All tests via custom runner"
 echo ""
 echo "🎉 Test suite setup complete!" 
