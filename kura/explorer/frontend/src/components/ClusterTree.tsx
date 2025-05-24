@@ -98,15 +98,12 @@ function TreeNode({ node, level, totalConversations }: TreeNodeProps) {
         
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
-            {node.conversation_count} conversations
+            {node.conversation_count}
           </span>
           {meanSatisfaction && (
             <div className="flex flex-col items-end">
-              <span className={cn('font-medium text-xs', satisfactionColor())}>
-                Satisfaction: {meanSatisfaction.toFixed(1)}/5
-              </span>
               <span className={cn('font-medium text-xs', frustrationColor())}>
-                Frustration: {node.avg_frustration!.toFixed(1)}/5
+                {node.avg_frustration!.toFixed(1)}/5
               </span>
             </div>
           )}
