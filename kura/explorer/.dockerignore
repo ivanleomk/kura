@@ -1,0 +1,23 @@
+# Backend
+backend/__pycache__/
+backend/*.pyc
+backend/.env
+backend/.venv/
+backend/venv/
+
+# Frontend
+frontend/node_modules/
+frontend/.env
+frontend/.env.local
+frontend/dist/
+frontend/build/
+frontend/.vite/
+
+# General
+.git/
+.gitignore
+*.log
+.DS_Store
+README.md
+docker-compose.yml
+start.sh

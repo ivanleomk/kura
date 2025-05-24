@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Kura Explorer API Test</title>
+</head>
+<body>
+    <h1>Kura Explorer API Test</h1>
+    <div id="status">Testing API connection...</div>
+    <pre id="result"></pre>
+    
+    <script>
+        // Test API connection
+        fetch('http://localhost:8001/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('status').textContent = '✅ API Connected!';
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                document.getElementById('status').textContent = '❌ API Connection Failed';
+                document.getElementById('result').textContent = error.toString();
+            });
+    </script>
+</body>
+</html>

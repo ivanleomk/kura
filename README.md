@@ -297,6 +297,27 @@ Kura is actively evolving with plans to add:
 - **Multi-modal Support**: Analysis of conversations that include images and other media
 - **Export Capabilities**: Enhanced formats for sharing and presenting findings
 
+## Testing
+
+To quickly test Kura and see it in action:
+
+1. **Run the tutorial test** to generate sample data:
+```bash
+python tutorial_test/test_tutorial.py
+```
+
+2. **Test the UI** with the generated data:
+```bash
+cd kura/explorer/
+./run-local.sh
+```
+
+The UI will be available at:
+- Frontend: http://localhost:5173
+- API docs: http://localhost:8001/docs
+
+Note: The UI may take a moment to fully load as it processes the cluster data.
+
 ## Development
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, testing, and contribution guidelines.

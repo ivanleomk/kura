@@ -129,7 +129,11 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
         embeddings: list[list[float]] = await self._gather_with_progress(
             # TODO: This representation needs to be templated, but we want to embed more than just the summary, including the request and task
             [
+<<<<<<< HEAD
                 self.embedding_model.embed(text=item.embeddable_text(), sem=sem)
+=======
+                self.embedding_model.embed(text=item.embeded_text(), sem=sem)
+>>>>>>> origin/main
                 for item in summaries
             ],
             desc="Embedding Summaries",

@@ -28,7 +28,11 @@ class GeneratedSummary(BaseModel):
     )
 
     def embeddable_text(self) -> str:
-        return f"Summary: {self.summary}\nRequest: {self.request}\nTask: {self.task}\nLanguages: {self.languages}\nAssistant Errors: {self.assistant_errors}"
+        return f"""<summary>{self.summary}</summary>
+<request>{self.request}</request>
+<task>{self.task}</task>
+<languages>{self.languages}</languages>
+<assistant_errors>{self.assistant_errors}</assistant_errors>"""
 
 
 class ConversationSummary(GeneratedSummary):

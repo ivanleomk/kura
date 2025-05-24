@@ -9,6 +9,12 @@ def timer(message):
     end_time = time.time()
     print(f"{message} took {end_time - start_time:.2f} seconds")
 
+def show_section_header(title):
+    """Display a formatted section header."""
+    print(f"\n{'=' * 60}")
+    print(f"{title:^60}")
+    print(f"{'=' * 60}\n")
+
 
 with timer("Importing kura modules"):
     # Import the procedural Kura v1 components
@@ -54,6 +60,52 @@ with timer("Loading sample conversations"):
         "ivanleomk/synthetic-gemini-conversations",
         split="train"
     )
+
+print(f"Loaded {len(conversations)} conversations successfully!\n")
+
+# Save conversations to JSON for database loading
+show_section_header("Saving Conversations")
+
+with timer("Saving conversations to JSON"):
+    import json
+    import os
+    
+    # Ensure checkpoint directory exists
+    os.makedirs("./tutorial_checkpoints", exist_ok=True)
+    
+    # Convert conversations to JSON format
+    conversations_data = [conv.model_dump() for conv in conversations]
+    
+    # Save to conversations.json
+    with open("./tutorial_checkpoints/conversations.json", "w") as f:
+        json.dump(conversations_data, f, indent=2, default=str)
+    
+print(f"Saved {len(conversations)} conversations to tutorial_checkpoints/conversations.json\n")
+
+# Sample conversation examination
+show_section_header("Sample Data Examination")
+
+sample_conversation = conversations[0]
+
+# Print conversation details
+print("Sample Conversation Details:")
+print(f"Chat ID: {sample_conversation.chat_id}")
+print(f"Created At: {sample_conversation.created_at}")
+print(f"Number of Messages: {len(sample_conversation.messages)}")
+print()
+
+# Sample messages
+print("Sample Messages:")
+for i, msg in enumerate(sample_conversation.messages[:3]):
+    content_preview = msg.content[:100] + "..." if len(msg.content) > 100 else msg.content
+    print(f"  {msg.role}: {content_preview}")
+
+print()
+
+# Processing section
+show_section_header("Conversation Processing")
+
+print("Starting conversation clustering...")
 
 async def process_with_progress():
     """Process conversations step by step using the procedural API."""
