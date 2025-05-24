@@ -227,47 +227,47 @@ export default function ClusterDetailPage() {
                   }
                 </CardDescription>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={frustrationFilter === 'all' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFrustrationFilter('all')}
-                >
-                  All
-                </Button>
-                <Button
-                  variant={frustrationFilter === 'low' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFrustrationFilter('low')}
-                  className={frustrationFilter === 'low' ? 'bg-green-600 hover:bg-green-700' : 'text-green-600 border-green-200 hover:bg-green-50'}
-                >
-                  Low (1-2)
-                </Button>
-                <Button
-                  variant={frustrationFilter === 'medium' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFrustrationFilter('medium')}
-                  className={frustrationFilter === 'medium' ? 'bg-blue-600 hover:bg-blue-700' : 'text-blue-600 border-blue-200 hover:bg-blue-50'}
-                >
-                  Medium (3)
-                </Button>
-                <Button
-                  variant={frustrationFilter === 'high' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFrustrationFilter('high')}
-                  className={frustrationFilter === 'high' ? 'bg-orange-600 hover:bg-orange-700' : 'text-orange-600 border-orange-200 hover:bg-orange-50'}
-                >
-                  High (4)
-                </Button>
-                <Button
-                  variant={frustrationFilter === 'critical' ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setFrustrationFilter('critical')}
-                  className={frustrationFilter === 'critical' ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50'}
-                >
-                  Critical (5)
-                </Button>
-              </div>
+                             <div className="flex gap-2">
+                 <Button
+                   variant={frustrationFilter === 'all' ? 'default' : 'outline'}
+                   size="sm"
+                   onClick={() => setFrustrationFilter('all')}
+                 >
+                   All ({frustrationCounts.all})
+                 </Button>
+                 <Button
+                   variant={frustrationFilter === 'low' ? 'default' : 'outline'}
+                   size="sm"
+                   onClick={() => setFrustrationFilter('low')}
+                   className={frustrationFilter === 'low' ? 'bg-green-600 hover:bg-green-700' : 'text-green-600 border-green-200 hover:bg-green-50'}
+                 >
+                   Low ({frustrationCounts.low})
+                 </Button>
+                 <Button
+                   variant={frustrationFilter === 'medium' ? 'default' : 'outline'}
+                   size="sm"
+                   onClick={() => setFrustrationFilter('medium')}
+                   className={frustrationFilter === 'medium' ? 'bg-blue-600 hover:bg-blue-700' : 'text-blue-600 border-blue-200 hover:bg-blue-50'}
+                 >
+                   Medium ({frustrationCounts.medium})
+                 </Button>
+                 <Button
+                   variant={frustrationFilter === 'high' ? 'default' : 'outline'}
+                   size="sm"
+                   onClick={() => setFrustrationFilter('high')}
+                   className={frustrationFilter === 'high' ? 'bg-orange-600 hover:bg-orange-700' : 'text-orange-600 border-orange-200 hover:bg-orange-50'}
+                 >
+                   High ({frustrationCounts.high})
+                 </Button>
+                 <Button
+                   variant={frustrationFilter === 'critical' ? 'default' : 'outline'}
+                   size="sm"
+                   onClick={() => setFrustrationFilter('critical')}
+                   className={frustrationFilter === 'critical' ? 'bg-red-600 hover:bg-red-700' : 'text-red-600 border-red-200 hover:bg-red-50'}
+                 >
+                   Critical ({frustrationCounts.critical})
+                 </Button>
+               </div>
             </div>
           </CardHeader>
           <CardContent>
