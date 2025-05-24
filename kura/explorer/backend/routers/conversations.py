@@ -3,7 +3,7 @@
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends
 
-from kura.explorer.backend.models import (
+from models import (
     ConversationResponse, ConversationDetailResponse,
     PaginatedResponse, SummaryResponse, MessageResponse
 )
@@ -39,55 +39,91 @@ async def get_conversations(
     explorer: KuraExplorer = Depends(get_explorer)
 ):
     """Get conversations with pagination and filtering."""
-    # Get base conversations
-    conversations = explorer.get_conversations(
-        limit=limit,
-        offset=offset,
-        cluster_id=cluster_id,
-        search=search
-    )
+    from sqlmodel import Session, select, func
+    from kura.explorer.db.models import ConversationDB, SummaryDB, ClusterConversationLink, ClusterDB
+    from sqlalchemy.orm import selectinload
     
-    # Apply additional filters
-    filtered_conversations = []
-    for conv in conversations:
-        summary = explorer.get_summary(conv.chat_id)
+    with Session(explorer.engine) as session:
+        # Build base query
+        query = select(ConversationDB).options(
+            selectinload(ConversationDB.summary),
+            selectinload(ConversationDB.clusters)
+        )
         
-        # Language filter
-        if language and summary and summary.languages:
-            if language not in summary.languages:
-                continue
+        # Count query for total
+        count_query = select(func.count()).select_from(ConversationDB)
         
-        # Frustration filters
-        if summary and summary.user_frustration:
-            if min_frustration and summary.user_frustration < min_frustration:
-                continue
-            if max_frustration and summary.user_frustration > max_frustration:
-                continue
+        # Apply filters
+        if cluster_id:
+            query = query.join(ClusterConversationLink).where(
+                ClusterConversationLink.cluster_id == cluster_id
+            )
+            count_query = count_query.join(ClusterConversationLink).where(
+                ClusterConversationLink.cluster_id == cluster_id
+            )
         
-        filtered_conversations.append((conv, summary))
-    
-    # Convert to response models
-    items = []
-    for conv, summary in filtered_conversations:
-        items.append(ConversationResponse(
-            id=conv.chat_id,
-            created_at=conv.created_at,
-            metadata=conv.metadata_json,
-            message_count=conv.message_count,
-            summary=SummaryResponse(**summary.__dict__) if summary else None,
-            cluster_names=[c.name for c in conv.clusters[:3]]
-        ))
-    
-    # Get total count
-    total = len(filtered_conversations)
-    
-    return PaginatedResponse(
-        items=items,
-        total=total,
-        limit=limit,
-        offset=offset,
-        has_more=(offset + limit) < total
-    )
+        if search:
+            query = query.join(SummaryDB).where(
+                SummaryDB.summary.contains(search) |
+                SummaryDB.task.contains(search) |
+                SummaryDB.request.contains(search)
+            )
+            count_query = count_query.join(SummaryDB).where(
+                SummaryDB.summary.contains(search) |
+                SummaryDB.task.contains(search) |
+                SummaryDB.request.contains(search)
+            )
+        
+        if language or min_frustration or max_frustration:
+            query = query.join(SummaryDB, isouter=True)
+            count_query = count_query.join(SummaryDB, isouter=True)
+            
+            if language:
+                # SQLite JSON operations
+                query = query.where(
+                    SummaryDB.languages.contains(f'"{language}"')
+                )
+                count_query = count_query.where(
+                    SummaryDB.languages.contains(f'"{language}"')
+                )
+            
+            if min_frustration:
+                query = query.where(SummaryDB.user_frustration >= min_frustration)
+                count_query = count_query.where(SummaryDB.user_frustration >= min_frustration)
+            
+            if max_frustration:
+                query = query.where(SummaryDB.user_frustration <= max_frustration)
+                count_query = count_query.where(SummaryDB.user_frustration <= max_frustration)
+        
+        # Get total count
+        total = session.exec(count_query).one()
+        
+        # Get paginated results
+        conversations = session.exec(
+            query.order_by(ConversationDB.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+        
+        # Convert to response models
+        items = []
+        for conv in conversations:
+            items.append(ConversationResponse(
+                id=conv.chat_id,
+                created_at=conv.created_at,
+                metadata=conv.metadata_json,
+                message_count=conv.message_count,
+                summary=SummaryResponse(**conv.summary.__dict__) if conv.summary else None,
+                cluster_names=[c.name for c in conv.clusters[:3]]
+            ))
+        
+        return PaginatedResponse(
+            items=items,
+            total=total,
+            limit=limit,
+            offset=offset,
+            has_more=(offset + limit) < total
+        )
 
 
 @router.get("/{conversation_id}", response_model=ConversationDetailResponse)

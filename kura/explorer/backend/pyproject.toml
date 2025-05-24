@@ -30,4 +30,3 @@ packages = ["."]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
-addopts = "--cov=. --cov-report=html --cov-report=term-missing"

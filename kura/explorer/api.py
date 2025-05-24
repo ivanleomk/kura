@@ -75,7 +75,9 @@ class KuraExplorer:
                          search: Optional[str] = None) -> List[ConversationDB]:
         """Get conversations with pagination and filtering."""
         with Session(self.engine) as session:
-            query = select(ConversationDB)
+            query = select(ConversationDB).options(
+                selectinload(ConversationDB.clusters)
+            )
             
             if cluster_id:
                 query = query.join(ClusterConversationLink).join(ClusterDB).where(
@@ -96,7 +98,9 @@ class KuraExplorer:
         """Get detailed conversation with messages and summary."""
         with Session(self.engine) as session:
             conv = session.exec(
-                select(ConversationDB).where(ConversationDB.chat_id == conversation_id)
+                select(ConversationDB)
+                .options(selectinload(ConversationDB.clusters))
+                .where(ConversationDB.chat_id == conversation_id)
             ).first()
             
             if not conv:
@@ -186,14 +190,14 @@ class KuraExplorer:
             # Search in messages
             msg_query = select(ConversationDB).distinct().join(MessageDB).where(
                 MessageDB.content.contains(query)
-            )
+            ).options(selectinload(ConversationDB.clusters))
             
             # Search in summaries
             summary_query = select(ConversationDB).join(SummaryDB).where(
                 SummaryDB.summary.contains(query) |
                 SummaryDB.task.contains(query) |
                 SummaryDB.request.contains(query)
-            )
+            ).options(selectinload(ConversationDB.clusters))
             
             # Get results from both queries
             msg_results = session.exec(msg_query).all()
