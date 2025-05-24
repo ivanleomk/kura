@@ -43,14 +43,31 @@ async def get_clusters(
     explorer: KuraExplorer = Depends(get_explorer)
 ):
     """Get clusters with pagination and filtering."""
-    # Get base clusters
-    clusters = explorer.get_clusters(parent_id=parent_id, level=level)
-    
-    # Calculate additional metrics for each cluster
-    enriched_clusters = []
+    from sqlalchemy import and_, or_
+    from sqlalchemy.sql import literal_column
     
     with Session(explorer.engine) as session:
-        for cluster in clusters:
+        # Build base query
+        query = select(ClusterDB).options(
+            selectinload(ClusterDB.conversations),
+            selectinload(ClusterDB.children)
+        )
+        
+        # Apply parent/level filters
+        if parent_id is not None:
+            query = query.where(ClusterDB.parent_id == parent_id)
+        elif level is not None:
+            query = query.where(ClusterDB.level == level)
+        else:
+            query = query.where(ClusterDB.parent_id == None)
+        
+        # Get all clusters first for filtering
+        all_clusters = session.exec(query).all()
+        
+        # Calculate metrics and filter
+        enriched_clusters = []
+        
+        for cluster in all_clusters:
             # Get summaries for this cluster to calculate metrics
             stmt = select(SummaryDB).join(
                 ClusterConversationLink,
@@ -77,11 +94,8 @@ async def get_clusters(
             if min_frustration and (not avg_frustration or avg_frustration < min_frustration):
                 continue
             
-            # Count children
-            child_count_stmt = select(func.count(ClusterDB.id)).where(
-                ClusterDB.parent_id == cluster.id
-            )
-            child_count = session.exec(child_count_stmt).one()
+            # Count children directly from loaded relationship
+            child_count = len(cluster.children)
             
             enriched_clusters.append({
                 "cluster": cluster,
@@ -89,18 +103,18 @@ async def get_clusters(
                 "languages": unique_languages,
                 "child_count": child_count
             })
-    
-    # Sort
-    if sort_by == "name":
-        enriched_clusters.sort(key=lambda x: x["cluster"].name, reverse=sort_desc)
-    elif sort_by == "conversation_count":
-        enriched_clusters.sort(key=lambda x: len(x["cluster"].chat_ids or []), reverse=sort_desc)
-    elif sort_by == "frustration":
-        enriched_clusters.sort(key=lambda x: x["avg_frustration"] or 0, reverse=sort_desc)
-    
-    # Paginate
-    total = len(enriched_clusters)
-    paginated = enriched_clusters[offset:offset + limit]
+        
+        # Sort
+        if sort_by == "name":
+            enriched_clusters.sort(key=lambda x: x["cluster"].name, reverse=sort_desc)
+        elif sort_by == "conversation_count":
+            enriched_clusters.sort(key=lambda x: len(x["cluster"].conversations), reverse=sort_desc)
+        elif sort_by == "frustration":
+            enriched_clusters.sort(key=lambda x: x["avg_frustration"] or 0, reverse=sort_desc)
+        
+        # Paginate
+        total = len(enriched_clusters)
+        paginated = enriched_clusters[offset:offset + limit]
     
     # Convert to response models
     items = []
