@@ -5,7 +5,8 @@ from fastapi import APIRouter, HTTPException, Query, Depends
 
 from models import (
     ConversationResponse, ConversationDetailResponse,
-    PaginatedResponse, SummaryResponse, MessageResponse
+    PaginatedResponse, PaginatedConversationResponse, 
+    SummaryResponse, MessageResponse, ConversationFacets, FrustrationFacets
 )
 from kura.explorer.api import KuraExplorer
 
@@ -27,7 +28,7 @@ def get_explorer() -> KuraExplorer:
     return explorer
 
 
-@router.get("", response_model=PaginatedResponse)
+@router.get("", response_model=PaginatedConversationResponse)
 async def get_conversations(
     cluster_id: Optional[str] = Query(None, description="Filter by cluster ID"),
     search: Optional[str] = Query(None, description="Search in summaries"),
@@ -38,8 +39,8 @@ async def get_conversations(
     max_frustration: Optional[int] = Query(None, ge=1, le=5),
     explorer: KuraExplorer = Depends(get_explorer)
 ):
-    """Get conversations with pagination and filtering."""
-    from sqlmodel import Session, select, func
+    """Get conversations with pagination and filtering, including facet counts."""
+    from sqlmodel import Session, select, func, case
     from kura.explorer.db.models import ConversationDB, SummaryDB, ClusterConversationLink, ClusterDB
     from sqlalchemy.orm import selectinload
     
@@ -53,26 +54,27 @@ async def get_conversations(
         # Count query for total
         count_query = select(func.count()).select_from(ConversationDB)
         
-        # Apply filters
+        # Base query for facets (before pagination)
+        facet_base_query = select(ConversationDB).join(SummaryDB, isouter=True)
+        
+        # Apply filters to all queries
+        filters = []
+        
         if cluster_id:
-            query = query.join(ClusterConversationLink).where(
-                ClusterConversationLink.cluster_id == cluster_id
-            )
-            count_query = count_query.join(ClusterConversationLink).where(
-                ClusterConversationLink.cluster_id == cluster_id
-            )
+            cluster_filter = ClusterConversationLink.cluster_id == cluster_id
+            query = query.join(ClusterConversationLink).where(cluster_filter)
+            count_query = count_query.join(ClusterConversationLink).where(cluster_filter)
+            facet_base_query = facet_base_query.join(ClusterConversationLink).where(cluster_filter)
         
         if search:
-            query = query.join(SummaryDB).where(
+            search_filter = (
                 SummaryDB.summary.contains(search) |
                 SummaryDB.task.contains(search) |
                 SummaryDB.request.contains(search)
             )
-            count_query = count_query.join(SummaryDB).where(
-                SummaryDB.summary.contains(search) |
-                SummaryDB.task.contains(search) |
-                SummaryDB.request.contains(search)
-            )
+            query = query.join(SummaryDB).where(search_filter)
+            count_query = count_query.join(SummaryDB).where(search_filter)
+            facet_base_query = facet_base_query.where(search_filter)
         
         if language or min_frustration or max_frustration:
             query = query.join(SummaryDB, isouter=True)
@@ -80,20 +82,39 @@ async def get_conversations(
             
             if language:
                 # SQLite JSON operations
-                query = query.where(
-                    SummaryDB.languages.contains(f'"{language}"')
-                )
-                count_query = count_query.where(
-                    SummaryDB.languages.contains(f'"{language}"')
-                )
+                language_filter = SummaryDB.languages.contains(f'"{language}"')
+                query = query.where(language_filter)
+                count_query = count_query.where(language_filter)
+                facet_base_query = facet_base_query.where(language_filter)
             
             if min_frustration:
-                query = query.where(SummaryDB.user_frustration >= min_frustration)
-                count_query = count_query.where(SummaryDB.user_frustration >= min_frustration)
+                min_filter = SummaryDB.user_frustration >= min_frustration
+                query = query.where(min_filter)
+                count_query = count_query.where(min_filter)
+                facet_base_query = facet_base_query.where(min_filter)
             
             if max_frustration:
-                query = query.where(SummaryDB.user_frustration <= max_frustration)
-                count_query = count_query.where(SummaryDB.user_frustration <= max_frustration)
+                max_filter = SummaryDB.user_frustration <= max_frustration
+                query = query.where(max_filter)
+                count_query = count_query.where(max_filter)
+                facet_base_query = facet_base_query.where(max_filter)
+        
+        # Calculate facets (frustration level counts)
+        frustration_facet_query = select(
+            func.sum(case((SummaryDB.user_frustration.between(1, 2), 1), else_=0)).label('low'),
+            func.sum(case((SummaryDB.user_frustration == 3, 1), else_=0)).label('medium'),
+            func.sum(case((SummaryDB.user_frustration == 4, 1), else_=0)).label('high'),
+            func.sum(case((SummaryDB.user_frustration >= 5, 1), else_=0)).label('critical')
+        ).select_from(facet_base_query.subquery())
+        
+        facet_result = session.exec(frustration_facet_query).first()
+        
+        frustration_facets = FrustrationFacets(
+            low=facet_result.low or 0,
+            medium=facet_result.medium or 0,
+            high=facet_result.high or 0,
+            critical=facet_result.critical or 0
+        )
         
         # Get total count
         total = session.exec(count_query).one()
@@ -117,12 +138,13 @@ async def get_conversations(
                 cluster_names=[c.name for c in conv.clusters[:3]]
             ))
         
-        return PaginatedResponse(
+        return PaginatedConversationResponse(
             items=items,
             total=total,
             limit=limit,
             offset=offset,
-            has_more=(offset + limit) < total
+            has_more=(offset + limit) < total,
+            facets=ConversationFacets(frustration_levels=frustration_facets)
         )
 
 
