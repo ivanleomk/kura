@@ -86,6 +86,15 @@ export default function ClusterDetailPage() {
     enabled: !!clusterId,
   });
 
+  // Calculate conversation counts by frustration level
+  const frustrationCounts = {
+    all: cluster?.conversations?.length || 0,
+    low: cluster?.conversations?.filter((conv: any) => conv.summary?.user_frustration && conv.summary.user_frustration <= 2).length || 0,
+    medium: cluster?.conversations?.filter((conv: any) => conv.summary?.user_frustration === 3).length || 0,
+    high: cluster?.conversations?.filter((conv: any) => conv.summary?.user_frustration === 4).length || 0,
+    critical: cluster?.conversations?.filter((conv: any) => conv.summary?.user_frustration && conv.summary.user_frustration >= 5).length || 0,
+  };
+
   // Filter conversations by frustration level
   const filteredConversations = cluster?.conversations?.filter((conv: any) => {
     if (frustrationFilter === 'all') return true;
