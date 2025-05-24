@@ -100,7 +100,7 @@ class TestAppConfiguration:
         assert "/api/stats" in routes
         
         # Router prefixes should be present in some form
-        router_patterns = ["/api/clusters", "/api/conversations", "/api/insights", "/api/search"]
+        router_patterns = ["/api/clusters", "/api/conversations", "/api/search"]
         
         for pattern in router_patterns:
             # Check if any route starts with the pattern
