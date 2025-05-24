@@ -23,7 +23,7 @@ class SummaryModel(BaseSummaryModel):
     
     def __init__(
         self,
-        model: str = "gemini/gemini-2.0-flash",
+        model: str = "openai/gpt-4o-mini",
         max_concurrent_requests: int = 50,
         extractors: list[
             Callable[

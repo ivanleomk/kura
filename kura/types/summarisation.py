@@ -27,30 +27,12 @@ class GeneratedSummary(BaseModel):
         None, description="List of errors the assistant made"
     )
 
-    def embeded_text(self):
-        return f"""
-        <summary>
-        {self.summary}
-        </summary>
-        <request>
-        {self.request}
-        </request>
-        <languages>
-        {self.languages}
-        </languages>
-        <task>
-        {self.task}
-        </task>
-        <concerning_score>
-        {self.concerning_score}
-        </concerning_score>
-        <user_frustration>
-        {self.user_frustration}
-        </user_frustration>
-        <assistant_errors>
-        {self.assistant_errors}
-        </assistant_errors>
-        """
+    def embeddable_text(self) -> str:
+        return f"""<summary>{self.summary}</summary>
+<request>{self.request}</request>
+<task>{self.task}</task>
+<languages>{self.languages}</languages>
+<assistant_errors>{self.assistant_errors}</assistant_errors>"""
 
 
 class ConversationSummary(GeneratedSummary):

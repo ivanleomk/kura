@@ -28,9 +28,9 @@ All functions use keyword-only arguments for:
 
 ### Pipeline Functions
 - `summarise_conversations(conversations, model, checkpoint_manager=None)` - Generate summaries from conversations
-- `generate_base_clusters(summaries, model, checkpoint_manager=None)` - Create initial clusters from summaries  
-- `reduce_clusters(clusters, model, checkpoint_manager=None)` - Build hierarchical cluster structure
-- `reduce_dimensionality(clusters, model, checkpoint_manager=None)` - Project clusters to 2D for visualization
+- `generate_base_clusters_from_conversation_summaries(summaries, model, checkpoint_manager=None)` - Create initial clusters from summaries  
+- `reduce_clusters_from_base_clusters(clusters, model, checkpoint_manager=None)` - Build hierarchical cluster structure
+- `reduce_dimensionality_from_clusters(clusters, model, checkpoint_manager=None)` - Project clusters to 2D for visualization
 
 ### Utilities
 - `CheckpointManager(checkpoint_dir, enabled=True)` - Handles checkpoint loading/saving
@@ -71,9 +71,9 @@ import asyncio
 import logging
 from kura.v1 import (
     summarise_conversations, 
-    generate_base_clusters, 
-    reduce_clusters,
-    reduce_dimensionality,
+    generate_base_clusters_from_conversation_summaries, 
+    reduce_clusters_from_base_clusters,
+    reduce_dimensionality_from_clusters,
     CheckpointManager
 )
 from kura.summarisation import SummaryModel
@@ -101,19 +101,19 @@ async def analyze_conversations(conversations):
         checkpoint_manager
     )
     
-    clusters = await generate_base_clusters(
+    clusters = await generate_base_clusters_from_conversation_summaries(
         summaries, 
         cluster_model, 
         checkpoint_manager
     )
     
-    reduced_clusters = await reduce_clusters(
+    reduced_clusters = await reduce_clusters_from_base_clusters(
         clusters, 
         meta_cluster_model, 
         checkpoint_manager
     )
     
-    projected = await reduce_dimensionality(ok do
+    projected = await reduce_dimensionality_from_clusters(
         reduced_clusters, 
         dimensionality_model, 
         checkpoint_manager
@@ -203,14 +203,14 @@ async def custom_pipeline(conversations):
     )
     
     # Generate base clusters
-    clusters = await generate_base_clusters(
+    clusters = await generate_base_clusters_from_conversation_summaries(
         summaries,
         model=cluster_model,
         checkpoint_manager=None
     )
     
     # Skip meta-clustering, go straight to dimensionality reduction
-    projected = await reduce_dimensionality(
+    projected = await reduce_dimensionality_from_clusters(
         clusters,
         model=dimensionality_model,
         checkpoint_manager=None
@@ -233,13 +233,13 @@ async def ab_test_clustering(summaries):
     checkpoint_mgr = CheckpointManager("./ab_test", enabled=False)
     
     # Run both models
-    hdbscan_clusters = await generate_base_clusters(
+    hdbscan_clusters = await generate_base_clusters_from_conversation_summaries(
         summaries,
         model=hdbscan_model,
         checkpoint_manager=checkpoint_mgr
     )
     
-    kmeans_clusters = await generate_base_clusters(
+    kmeans_clusters = await generate_base_clusters_from_conversation_summaries(
         summaries,
         model=kmeans_model, 
         checkpoint_manager=checkpoint_mgr
@@ -277,7 +277,7 @@ async def parallel_analysis(conversation_batches):
     
     # Continue with clustering...
     cluster_model = ClusterModel()
-    clusters = await generate_base_clusters(
+    clusters = await generate_base_clusters_from_conversation_summaries(
         flattened_summaries,
         model=cluster_model,
         checkpoint_manager=None
@@ -379,8 +379,8 @@ result = await kura.cluster_conversations(conversations)
 ### After (Procedural)
 ```python
 from kura.v1 import (
-    summarise_conversations, generate_base_clusters, 
-    reduce_clusters, reduce_dimensionality, CheckpointManager
+    summarise_conversations, generate_base_clusters_from_conversation_summaries, 
+    reduce_clusters_from_base_clusters, reduce_dimensionality_from_clusters, CheckpointManager
 )
 from kura.summarisation import SummaryModel
 from kura.cluster import ClusterModel
@@ -400,17 +400,17 @@ summaries = await summarise_conversations(
     model=summary_model,
     checkpoint_manager=checkpoint_manager
 )
-clusters = await generate_base_clusters(
+clusters = await generate_base_clusters_from_conversation_summaries(
     summaries,
     model=cluster_model,
     checkpoint_manager=checkpoint_manager
 )
-reduced = await reduce_clusters(
+reduced = await reduce_clusters_from_base_clusters(
     clusters,
     model=meta_cluster_model,
     checkpoint_manager=checkpoint_manager
 )
-result = await reduce_dimensionality(
+result = await reduce_dimensionality_from_clusters(
     reduced,
     model=dimensionality_model,
     checkpoint_manager=checkpoint_manager

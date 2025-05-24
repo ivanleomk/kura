@@ -25,7 +25,7 @@ class ClusterModel(BaseClusterModel):
         clustering_method: BaseClusteringMethod = KmeansClusteringMethod(),
         embedding_model: BaseEmbeddingModel = OpenAIEmbeddingModel(),
         max_concurrent_requests: int = 50,
-        model: str = "openai/gpt-4o",
+        model: str = "openai/gpt-4o-mini",
         console: Optional['Console'] = None,
         **kwargs, # For future use
     ):
@@ -86,13 +86,13 @@ The names you propose must follow these requirements:
 
 Below are the related statements:
 <positive_examples>
-{% for item in positive_examples %}{{ item.embeded_text() }}
+{% for item in positive_examples %}{{ item.embeddable_text() }}
 {% endfor %}
 </positive_examples>
 
 For context, here are statements from nearby groups that are NOT part of the group you're summarizing:
 <contrastive_examples>
-{% for item in contrastive_examples %}{{ item.embeded_text() }}
+{% for item in contrastive_examples %}{{ item.embeddable_text() }}
 {% endfor %}
 </contrastive_examples>
 
@@ -127,8 +127,9 @@ Do not elaborate beyond what you say in the tags. Remember to analyze both the s
     ) -> list[Cluster]:
         sem = Semaphore(self.max_concurrent_requests)
         embeddings: list[list[float]] = await self._gather_with_progress(
+            # TODO: This representation needs to be templated, but we want to embed more than just the summary, including the request and task
             [
-                self.embedding_model.embed(text=item.embeded_text(), sem=sem)
+                self.embedding_model.embed(text=item.embeddable_text(), sem=sem)
                 for item in summaries
             ],
             desc="Embedding Summaries",

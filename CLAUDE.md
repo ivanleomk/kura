@@ -78,12 +78,19 @@ kura start-app --dir ./my-checkpoints
 
 Kura is a tool for analyzing and visualizing chat data, built on the same ideas as Anthropic's CLIO. It uses machine learning techniques to understand user conversations by clustering them into meaningful groups.
 
+### Two API Approaches
+
+Kura offers two APIs for different use cases:
+
+1. **Class-Based API** (`kura/kura.py`): The original API with a single `Kura` class that orchestrates the entire pipeline
+2. **Procedural API** (`kura/v1/`): A functional approach with composable functions for maximum flexibility
+
 ### Core Components
 
 1. **Summarisation Model** (`kura/summarisation.py`): Takes user conversations and summarizes them into task descriptions
 2. **Embedding Model** (`kura/embedding.py`): Converts text into vector representations (embeddings)
 3. **Clustering Model** (`kura/cluster.py`): Groups summaries into clusters based on embeddings
-4. **Meta Clustering Model** (`kura/meta_cluster.py`): Further groups clusters into a hierarchical structure
+4. **Meta Clustering Model** (`kura/meta_cluster.py`): Further groups clusters into a hierarchical structure (Note: `max_clusters` parameter now lives here, not in the main Kura class)
 5. **Dimensionality Reduction** (`kura/dimensionality.py`): Reduces high-dimensional embeddings for visualization
 
 ### Data Flow
@@ -255,3 +262,47 @@ The web interface provides:
 - Cluster details panel
 - Conversation preview
 - Metadata filtering
+
+## Procedural API (v1)
+
+The procedural API in `kura/v1/` provides a functional approach to the pipeline:
+
+### Key Functions
+- `summarise_conversations(conversations, *, model, checkpoint_manager=None)` - Generate summaries
+- `generate_base_clusters_from_conversation_summaries(summaries, *, model, checkpoint_manager=None)` - Create initial clusters
+- `reduce_clusters_from_base_clusters(clusters, *, model, checkpoint_manager=None)` - Build hierarchy
+- `reduce_dimensionality_from_clusters(clusters, *, model, checkpoint_manager=None)` - Project to 2D
+
+### Example Usage
+```python
+from kura.v1 import (
+    summarise_conversations,
+    generate_base_clusters_from_conversation_summaries,
+    reduce_clusters_from_base_clusters,
+    reduce_dimensionality_from_clusters,
+    CheckpointManager
+)
+
+# Run pipeline with explicit steps
+checkpoint_mgr = CheckpointManager("./checkpoints", enabled=True)
+
+summaries = await summarise_conversations(
+    conversations,
+    model=summary_model,
+    checkpoint_manager=checkpoint_mgr
+)
+
+clusters = await generate_base_clusters_from_conversation_summaries(
+    summaries,
+    model=cluster_model,
+    checkpoint_manager=checkpoint_mgr
+)
+# ... continue with remaining steps
+```
+
+### Benefits
+- Fine-grained control over each step
+- Easy to skip or reorder steps
+- Support for heterogeneous models (OpenAI, vLLM, Hugging Face, etc.)
+- Functional programming style with no hidden state
+- All functions use keyword-only arguments for clarity

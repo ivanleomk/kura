@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from kura.base_classes import (
     BaseMetaClusterModel,
     BaseEmbeddingModel,
