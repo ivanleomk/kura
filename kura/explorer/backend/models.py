@@ -117,45 +117,5 @@ class StatsResponse(BaseModel):
     max_cluster_level: int
 
 
-class LanguageStats(BaseModel):
-    """Language distribution statistics."""
-    language: str
-    count: int
-    percentage: float
-
-
-class MetadataDistribution(BaseModel):
-    """Metadata value distribution."""
-    key: str
-    values: Dict[str, int]
-
-
-class FrustrationMapItem(BaseModel):
-    """Frustration score mapping."""
-    cluster_id: str
-    cluster_name: str
-    avg_frustration: float
-    conversation_count: int
-    x_coord: Optional[float] = None
-    y_coord: Optional[float] = None
-
-
-class ThemeInsight(BaseModel):
-    """Common theme across clusters."""
-    theme: str
-    cluster_ids: List[str]
-    frequency: int
-    example_summaries: List[str]
-
-
-class PatternInsight(BaseModel):
-    """Common conversation pattern."""
-    pattern_name: str
-    description: str
-    frequency: int
-    avg_length: float
-    example_conversation_ids: List[str]
-
-
 # Update forward references
 ClusterTreeNode.model_rebuild()
