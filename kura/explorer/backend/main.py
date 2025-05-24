@@ -12,7 +12,7 @@ from typing import Optional
 from fastapi import HTTPException
 from pydantic import BaseModel
 
-from routers import clusters, conversations, insights, search
+from routers import clusters, conversations, search
 from kura.explorer.api import KuraExplorer
 
 
@@ -52,11 +52,10 @@ app.add_middleware(
 # Include routers
 app.include_router(clusters.router, prefix="/api/clusters", tags=["clusters"])
 app.include_router(conversations.router, prefix="/api/conversations", tags=["conversations"])
-app.include_router(insights.router, prefix="/api/insights", tags=["insights"])
 app.include_router(search.router, prefix="/api/search", tags=["search"])
 
 
-from models import StatsResponse
+from kura.explorer.backend.models import StatsResponse
 
 
 class HealthResponse(BaseModel):
