@@ -42,13 +42,6 @@ GET  /api/search?q=...                   # Search across data
 
 ### Analysis Endpoints
 ```
-GET  /api/insights/themes                # Common themes across clusters
-GET  /api/insights/metadata-dist         # Metadata distribution analysis
-GET  /api/insights/language-stats        # Language usage statistics
-GET  /api/insights/frustration-map       # User frustration heatmap
-GET  /api/insights/outliers              # Conversations that don't fit patterns
-GET  /api/insights/common-patterns       # Recurring conversation flows
-GET  /api/clusters/compare?ids=...       # Compare multiple clusters
 GET  /api/clusters/:id/summary           # Aggregated summary of cluster
 ```
 
@@ -67,7 +60,7 @@ GET  /api/clusters/:id/summary           # Aggregated summary of cluster
 - `Layout.tsx` - Shared layout with navigation
 
 ### Pages
-- `HomePage.tsx` - Dashboard with stats and insights
+- `HomePage.tsx` - Dashboard with stats
 - `ClustersPage.tsx` - Cluster explorer with map view
 - `ConversationsPage.tsx` - Conversation browser
 - `ClusterDetailPage.tsx` - Single cluster analysis

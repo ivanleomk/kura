@@ -17,7 +17,6 @@ Kura Explorer is a modern web interface for exploring and analyzing Kura checkpo
 - **routers/**: API endpoint implementations
   - `clusters.py`: Cluster-related endpoints
   - `conversations.py`: Conversation browsing and details
-  - `insights.py`: Analytics and insights endpoints
   - `search.py`: Search functionality
 - **API Documentation**: Available at http://localhost:8001/docs when running
 
@@ -33,7 +32,6 @@ Kura Explorer is a modern web interface for exploring and analyzing Kura checkpo
   - `ClusterDetailPage.tsx`: Individual cluster details
   - `ConversationsPage.tsx`: Conversation browser
   - `ConversationDetailPage.tsx`: Individual conversation view
-  - `InsightsPage.tsx`: Analytics and insights
 - **src/components/**: Reusable UI components
   - `ClusterMap.tsx`: 2D UMAP visualization
   - `ClusterTree.tsx`: Hierarchical cluster tree
