@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../lib/api';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { Search, Filter } from 'lucide-react';
+import { Badge } from '../components/ui/badge';
+import { Search, AlertCircle, Languages, Target, AlertTriangle } from 'lucide-react';
 
 export default function ConversationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -72,14 +73,14 @@ export default function ConversationsPage() {
           <div className="space-y-4">
             {data?.items.map((conversation) => (
               <Link
-                key={conversation.chat_id}
-                to={`/conversations/${conversation.chat_id}`}
+                key={conversation.id}
+                to={`/conversations/${conversation.id}`}
               >
                 <Card className="p-4 hover:bg-accent transition-colors cursor-pointer">
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">
                       <h3 className="font-semibold">
-                        {conversation.summary?.title || 'Untitled Conversation'}
+                        {conversation.summary?.request || 'Untitled Conversation'}
                       </h3>
                       <span className="text-sm text-muted-foreground">
                         {new Date(conversation.created_at).toLocaleDateString()}
@@ -92,18 +93,65 @@ export default function ConversationsPage() {
                           {conversation.summary.summary}
                         </p>
                         
-                        <div className="flex items-center gap-4 text-sm">
-                          <span>
-                            Language: <span className="font-medium capitalize">
-                              {conversation.summary.language}
-                            </span>
-                          </span>
-                          <span>
-                            Frustration: <span className="font-medium">
-                              {conversation.summary.frustration}/5
-                            </span>
-                          </span>
+                        {conversation.summary.task && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <Target className="h-3 w-3 text-muted-foreground" />
+                            <span className="line-clamp-1">{conversation.summary.task}</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex flex-wrap items-center gap-3">
+                          {conversation.summary.languages && conversation.summary.languages.length > 0 && (
+                            <div className="flex items-center gap-1">
+                              <Languages className="h-3 w-3 text-muted-foreground" />
+                              <div className="flex gap-1">
+                                {conversation.summary.languages.map((lang, idx) => (
+                                  <Badge key={idx} variant="secondary" className="text-xs capitalize">
+                                    {lang}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {conversation.summary.user_frustration !== null && conversation.summary.user_frustration !== undefined && (
+                            <Badge 
+                              variant={conversation.summary.user_frustration >= 3 ? "destructive" : "secondary"}
+                              className="text-xs"
+                            >
+                              Frustration: {conversation.summary.user_frustration}/5
+                            </Badge>
+                          )}
+                          
+                          {conversation.summary.concerning_score !== null && conversation.summary.concerning_score !== undefined && conversation.summary.concerning_score >= 3 && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Concern: {conversation.summary.concerning_score}/5
+                            </Badge>
+                          )}
+                          
+                          {conversation.summary.assistant_errors && conversation.summary.assistant_errors.length > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              {conversation.summary.assistant_errors.length} error{conversation.summary.assistant_errors.length > 1 ? 's' : ''}
+                            </Badge>
+                          )}
                         </div>
+                        
+                        {conversation.summary.assistant_errors && conversation.summary.assistant_errors.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {conversation.summary.assistant_errors.slice(0, 2).map((error, idx) => (
+                              <p key={idx} className="text-xs text-destructive line-clamp-1">
+                                • {error}
+                              </p>
+                            ))}
+                            {conversation.summary.assistant_errors.length > 2 && (
+                              <p className="text-xs text-muted-foreground">
+                                +{conversation.summary.assistant_errors.length - 2} more error{conversation.summary.assistant_errors.length - 2 > 1 ? 's' : ''}
+                              </p>
+                            )}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>

@@ -59,6 +59,25 @@ with timer("Loading sample conversations"):
 
 print(f"Loaded {len(conversations)} conversations successfully!\n")
 
+# Save conversations to JSON for database loading
+show_section_header("Saving Conversations")
+
+with timer("Saving conversations to JSON"):
+    import json
+    import os
+    
+    # Ensure checkpoint directory exists
+    os.makedirs("./tutorial_checkpoints", exist_ok=True)
+    
+    # Convert conversations to JSON format
+    conversations_data = [conv.model_dump() for conv in conversations]
+    
+    # Save to conversations.json
+    with open("./tutorial_checkpoints/conversations.json", "w") as f:
+        json.dump(conversations_data, f, indent=2, default=str)
+    
+print(f"Saved {len(conversations)} conversations to tutorial_checkpoints/conversations.json\n")
+
 # Sample conversation examination
 show_section_header("Sample Data Examination")
 

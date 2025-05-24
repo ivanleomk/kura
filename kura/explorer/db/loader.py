@@ -173,6 +173,7 @@ class CheckpointLoader:
                 id=cluster.id,
                 name=cluster.name,
                 description=cluster.description,
+                chat_ids=cluster.chat_ids,  # Preserve original chat_ids for compatibility
                 parent_id=cluster.parent_id,
                 level=proj_data.level if proj_data else 0,
                 x_coord=proj_data.x_coord if proj_data else None,

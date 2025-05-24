@@ -133,29 +133,29 @@ export default function ClusterDetailPage() {
                   className="block p-4 rounded-lg border hover:bg-accent transition-colors"
                 >
                   <div className="space-y-2">
-                    <p className="font-medium text-lg">{conv.summary?.title || 'Untitled Conversation'}</p>
+                    <p className="font-medium text-lg">{conv.summary?.request || 'Untitled Conversation'}</p>
                     <p className="text-sm text-muted-foreground line-clamp-3">
                       {conv.summary?.summary || 'No summary available'}
                     </p>
                     
                     <div className="flex items-center gap-4 text-sm">
-                      {conv.summary?.frustration && (
+                      {conv.summary?.user_frustration && (
                         <div className="flex items-center gap-1">
                           <AlertTriangle className={cn(
                             "h-4 w-4",
-                            conv.summary.frustration <= 2 ? "text-green-500" :
-                            conv.summary.frustration <= 3 ? "text-blue-500" :
-                            conv.summary.frustration <= 4 ? "text-orange-500" :
+                            conv.summary.user_frustration <= 2 ? "text-green-500" :
+                            conv.summary.user_frustration <= 3 ? "text-blue-500" :
+                            conv.summary.user_frustration <= 4 ? "text-orange-500" :
                             "text-red-500"
                           )} />
-                          <span>Frustration: {conv.summary.frustration}/5</span>
+                          <span>Frustration: {conv.summary.user_frustration}/5</span>
                         </div>
                       )}
                       
-                      {conv.summary?.language && (
+                      {conv.summary?.languages?.[0] && (
                         <div className="flex items-center gap-1">
                           <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="capitalize">{conv.summary.language}</span>
+                          <span className="capitalize">{conv.summary.languages[0]}</span>
                         </div>
                       )}
                       

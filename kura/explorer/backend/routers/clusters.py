@@ -114,7 +114,7 @@ async def get_clusters(
             parent_id=cluster.parent_id,
             x_coord=cluster.x_coord,
             y_coord=cluster.y_coord,
-            conversation_count=len(cluster.chat_ids) if cluster.chat_ids else 0,
+            conversation_count=len(cluster.conversations) if hasattr(cluster, 'conversations') else 0,
             child_count=item["child_count"],
             avg_frustration=item["avg_frustration"],
             languages=item["languages"]
@@ -158,7 +158,7 @@ async def get_cluster_tree(
             name=cluster.name,
             description=cluster.description,
             level=cluster.level,
-            conversation_count=len(cluster.chat_ids) if cluster.chat_ids else 0,
+            conversation_count=len(cluster.conversations) if hasattr(cluster, 'conversations') else 0,
             avg_frustration=avg_frustration,
             children=[build_tree_node(child) for child in children]
         )
@@ -243,7 +243,7 @@ async def get_cluster(
                 parent_id=child.parent_id,
                 x_coord=child.x_coord,
                 y_coord=child.y_coord,
-                conversation_count=len(child.chat_ids) if child.chat_ids else 0,
+                conversation_count=len(child.conversations) if hasattr(child, 'conversations') else 0,
                 child_count=0
             ) for child in cluster_detail.children
         ],
