@@ -48,10 +48,7 @@ async def get_clusters(
     
     with Session(explorer.engine) as session:
         # Build base query
-        query = select(ClusterDB).options(
-            selectinload(ClusterDB.conversations),
-            selectinload(ClusterDB.children)
-        )
+        query = select(ClusterDB)
         
         # Apply parent/level filters
         if parent_id is not None:
@@ -94,8 +91,11 @@ async def get_clusters(
             if min_frustration and (not avg_frustration or avg_frustration < min_frustration):
                 continue
             
-            # Count children directly from loaded relationship
-            child_count = len(cluster.children)
+            # Count children safely
+            child_count = session.exec(
+                select(func.count(ClusterDB.id))
+                .where(ClusterDB.parent_id == cluster.id)
+            ).one()
             
             enriched_clusters.append({
                 "cluster": cluster,
@@ -165,14 +165,14 @@ async def get_cluster_tree(
     explorer: KuraExplorer = Depends(get_explorer)
 ):
     """Get the full cluster hierarchy as a tree structure."""
-    root_clusters = explorer.get_clusters(level=0)
-    
-    def build_tree_node(cluster) -> ClusterTreeNode:
-        """Recursively build tree nodes."""
-        children = explorer.get_clusters(parent_id=cluster.id)
+    with Session(explorer.engine) as session:
+        root_clusters = explorer.get_clusters(level=0)
         
-        # Get average frustration for this cluster
-        with Session(explorer.engine) as session:
+        def build_tree_node(cluster, session: Session) -> ClusterTreeNode:
+            """Recursively build tree nodes."""
+            children = explorer.get_clusters(parent_id=cluster.id)
+            
+            # Get average frustration for this cluster
             stmt = select(SummaryDB).join(
                 ClusterConversationLink,
                 SummaryDB.chat_id == ClusterConversationLink.conversation_id
@@ -180,27 +180,27 @@ async def get_cluster_tree(
                 ClusterConversationLink.cluster_id == cluster.id
             )
             summaries = session.exec(stmt).all()
+            
+            frustration_scores = [s.user_frustration for s in summaries if s.user_frustration]
+            avg_frustration = sum(frustration_scores) / len(frustration_scores) if frustration_scores else None
+            
+            # Get conversation count safely
+            conv_count = session.exec(
+                select(func.count(ClusterConversationLink.conversation_id))
+                .where(ClusterConversationLink.cluster_id == cluster.id)
+            ).one()
+            
+            return ClusterTreeNode(
+                id=cluster.id,
+                name=cluster.name,
+                description=cluster.description,
+                level=cluster.level,
+                conversation_count=conv_count,
+                avg_frustration=avg_frustration,
+                children=[build_tree_node(child, session) for child in children]
+            )
         
-        frustration_scores = [s.user_frustration for s in summaries if s.user_frustration]
-        avg_frustration = sum(frustration_scores) / len(frustration_scores) if frustration_scores else None
-        
-        # Get conversation count safely
-        conv_count = session.exec(
-            select(func.count(ClusterConversationLink.conversation_id))
-            .where(ClusterConversationLink.cluster_id == cluster.id)
-        ).one()
-        
-        return ClusterTreeNode(
-            id=cluster.id,
-            name=cluster.name,
-            description=cluster.description,
-            level=cluster.level,
-            conversation_count=conv_count,
-            avg_frustration=avg_frustration,
-            children=[build_tree_node(child) for child in children]
-        )
-    
-    return [build_tree_node(cluster) for cluster in root_clusters]
+        return [build_tree_node(cluster, session) for cluster in root_clusters]
 
 
 @router.get("/{cluster_id}", response_model=ClusterDetailResponse)
