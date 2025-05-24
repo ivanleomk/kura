@@ -7,10 +7,15 @@ and rich-formatted output using the Rich library when available.
 Compatible with the procedural Kura v1 pipeline approach.
 """
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, TYPE_CHECKING, Any
 from pathlib import Path
 import logging
 from kura.types import Cluster, ClusterTreeNode
+
+if TYPE_CHECKING:
+    from rich.console import Console as ConsoleType
+else:
+    ConsoleType = Any
 
 # Try to import Rich, fall back gracefully if not available
 try:
@@ -348,7 +353,7 @@ def visualise_clusters_rich(
     clusters: Optional[List[Cluster]] = None,
     *,
     checkpoint_path: Optional[Union[str, Path]] = None,
-    console: Optional[Console] = None
+    console: Optional[ConsoleType] = None
 ) -> None:
     """Print a rich-formatted hierarchical visualization using Rich library.
     
@@ -518,7 +523,7 @@ def visualise_from_checkpoint_manager(
     meta_cluster_model,
     *,
     style: str = "basic",
-    console: Optional[Console] = None
+    console: Optional[ConsoleType] = None
 ) -> None:
     """Visualize clusters using a CheckpointManager and meta cluster model.
     
@@ -554,7 +559,7 @@ def visualise_pipeline_results(
     clusters: List[Cluster],
     *,
     style: str = "enhanced",
-    console: Optional[Console] = None
+    console: Optional[ConsoleType] = None
 ) -> None:
     """Visualize clusters that are the result of a pipeline execution.
     

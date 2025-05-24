@@ -257,10 +257,12 @@ async def reduce_clusters_from_base_clusters(
     all_clusters = clusters.copy()
     root_clusters = clusters.copy()
     
-    logger.info(f"Starting with {len(root_clusters)} clusters, target: {model.max_clusters}")
+    # Get max_clusters from model if available, otherwise use default
+    max_clusters = getattr(model, 'max_clusters', 10)
+    logger.info(f"Starting with {len(root_clusters)} clusters, target: {max_clusters}")
     
     # Iteratively reduce until we have desired number of root clusters
-    while len(root_clusters) > model.max_clusters:
+    while len(root_clusters) > max_clusters:
         # Get updated clusters from meta-clustering
         new_current_level = await model.reduce_clusters(root_clusters)
         
