@@ -12,9 +12,10 @@ interface ClusterTreeProps {
 interface TreeNodeProps {
   node: ClusterTreeNode;
   level: number;
+  totalConversations: number;
 }
 
-function TreeNode({ node, level }: TreeNodeProps) {
+function TreeNode({ node, level, totalConversations }: TreeNodeProps) {
   const navigate = useNavigate();
   const [isExpanded, setIsExpanded] = useState(level < 2);
   const hasChildren = node.children && node.children.length > 0;
@@ -26,6 +27,18 @@ function TreeNode({ node, level }: TreeNodeProps) {
     if (node.avg_frustration <= 4) return 'text-orange-600';
     return 'text-red-600';
   };
+
+  const satisfactionColor = () => {
+    if (!node.avg_frustration) return '';
+    const satisfaction = 5 - node.avg_frustration;
+    if (satisfaction >= 3) return 'text-green-600';
+    if (satisfaction >= 2) return 'text-blue-600';
+    if (satisfaction >= 1) return 'text-orange-600';
+    return 'text-red-600';
+  };
+
+  const conversationPercentage = totalConversations > 0 ? ((node.conversation_count || 0) / totalConversations) * 100 : 0;
+  const meanSatisfaction = node.avg_frustration ? 5 - node.avg_frustration : null;
 
   return (
     <div className="select-none">
@@ -68,16 +81,34 @@ function TreeNode({ node, level }: TreeNodeProps) {
           <p className="text-sm text-muted-foreground truncate">
             {node.description}
           </p>
+          
+          {/* Conversation percentage bar */}
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex-1 bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(conversationPercentage, 100)}%` }}
+              />
+            </div>
+            <span className="text-xs text-muted-foreground min-w-0">
+              {conversationPercentage.toFixed(1)}%
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-4 text-sm">
           <span className="text-muted-foreground">
             {node.conversation_count} conversations
           </span>
-          {node.avg_frustration && (
-            <span className={cn('font-medium', frustrationColor())}>
-              {node.avg_frustration.toFixed(1)}/5
-            </span>
+          {meanSatisfaction && (
+            <div className="flex flex-col items-end">
+              <span className={cn('font-medium text-xs', satisfactionColor())}>
+                Satisfaction: {meanSatisfaction.toFixed(1)}/5
+              </span>
+              <span className={cn('font-medium text-xs', frustrationColor())}>
+                Frustration: {node.avg_frustration!.toFixed(1)}/5
+              </span>
+            </div>
           )}
         </div>
       </div>
@@ -85,7 +116,7 @@ function TreeNode({ node, level }: TreeNodeProps) {
       {hasChildren && isExpanded && (
         <div>
           {node.children.map((child) => (
-            <TreeNode key={child.id} node={child} level={level + 1} />
+            <TreeNode key={child.id} node={child} level={level + 1} totalConversations={totalConversations} />
           ))}
         </div>
       )}
@@ -98,6 +129,30 @@ export default function ClusterTree({ clusters }: ClusterTreeProps) {
 
   // Force re-render with all expanded/collapsed
   const [key, setKey] = useState(0);
+
+  // Function to recursively sort nodes by conversation count
+  const sortNodesByConversationCount = (nodes: ClusterTreeNode[]): ClusterTreeNode[] => {
+    return nodes
+      .map(node => ({
+        ...node,
+        ...(node.children && { children: sortNodesByConversationCount(node.children) })
+      }))
+      .sort((a, b) => (b.conversation_count || 0) - (a.conversation_count || 0));
+  };
+
+  // Sort clusters by conversation count
+  const sortedClusters = sortNodesByConversationCount(clusters);
+
+  // Calculate total conversations across all clusters
+  const calculateTotalConversations = (nodes: ClusterTreeNode[]): number => {
+    return nodes.reduce((total, node) => {
+      const nodeConversations = node.conversation_count || 0;
+      const childrenConversations = node.children ? calculateTotalConversations(node.children) : 0;
+      return total + nodeConversations + childrenConversations;
+    }, 0);
+  };
+
+  const totalConversations = calculateTotalConversations(clusters);
 
   const handleExpandAll = () => {
     setExpandAll(!expandAll);
@@ -118,8 +173,8 @@ export default function ClusterTree({ clusters }: ClusterTreeProps) {
       </div>
       
       <div className="border rounded-lg p-4" key={key}>
-        {clusters.map((cluster) => (
-          <TreeNode key={cluster.id} node={cluster} level={0} />
+        {sortedClusters.map((cluster) => (
+          <TreeNode key={cluster.id} node={cluster} level={0} totalConversations={totalConversations} />
         ))}
       </div>
     </div>
