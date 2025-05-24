@@ -1,1 +1,0 @@
-"""Kura Explorer backend."""
